@@ -1,5 +1,6 @@
 {
   "name": "stryker-mutator",
+  "publisher": "stryker-mutator",
   "displayName": "Stryker Mutator",
   "description": "Test your tests with mutation testing.",
   "version": "0.0.1",
@@ -14,8 +15,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "stryker-mutator.helloWorld",
-        "title": "Hello World"
+        "command": "stryker-mutator.runOnWorkspace",
+        "title": "Stryker: Run on workspace"
       }
     ]
   },

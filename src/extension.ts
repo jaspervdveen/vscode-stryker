@@ -1,26 +1,35 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { exec, ExecException } from 'child_process';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "stryker-mutator" is now active!');
+	const runAllTestsCommandHandler = () => {
+		if (!vscode.workspace.workspaceFolders) {
+			vscode.window.showErrorMessage('No workspace is open');
+			return;
+		}
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('stryker-mutator.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from Stryker Mutator!');
-	});
+		// all of these paths work
+		const command =  `${vscode.workspace.workspaceFolders[0].uri.fsPath}/node_modules/.bin/stryker run`;
+		const command2 =  `npx stryker run`;
+		const command3 =  `./node_modules/.bin/stryker run`;
 
-	context.subscriptions.push(disposable);
+		vscode.window.showInformationMessage('Running mutation tests...');
+
+		exec(command2, { cwd: vscode.workspace.workspaceFolders[0].uri.fsPath}, (error: ExecException | null, stdout: string, stderr: string) => {
+			if (error) {
+			  console.log(`Error executing command: ${error.message}`);
+			  return;
+			}
+			if (stderr) {
+				console.log(`Command stderr: ${stderr}`);
+			  return;
+			}
+			console.log(stdout);
+		  });
+	};
+
+	context.subscriptions.push(vscode.commands.registerCommand("stryker-mutator.runOnWorkspace", runAllTestsCommandHandler));
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
