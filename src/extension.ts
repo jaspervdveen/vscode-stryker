@@ -17,6 +17,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 			const file = mutationReport.files[fileName];
 
+			const folderTestItem = controller.createTestItem(fileName, fileName, vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${fileName}`));
+
 			for (const mutant of file.mutants) {
 
 				const fileUri = vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${fileName}`);
@@ -30,8 +32,10 @@ export function activate(context: vscode.ExtensionContext) {
 				testItem.canResolveChildren = false;
 				testItem.sortText = `${mutant.id}`;
 
-				tests.push(testItem);
+				folderTestItem.children.add(testItem);
 			}
+
+			tests.push(folderTestItem);
 		}
 		return tests;
 	};
@@ -49,13 +53,14 @@ export function activate(context: vscode.ExtensionContext) {
 			false
 		);
 
+
 		for (const fileName in mutationReport.files) {
 
 			const file = mutationReport.files[fileName];
 
 			for (const mutant of file.mutants) {
 
-				const testItem = controller.items.get(mutant.id);
+				const testItem = controller.items.get(fileName)?.children.get(mutant.id);
 
 				if (!testItem) { continue; }
 
