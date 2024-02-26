@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { exec, ExecException } from 'child_process';
 
+
 export function activate(context: vscode.ExtensionContext) {
 
 	const controller = vscode.tests.createTestController('stryker-mutator', 'Stryker Mutator');
@@ -20,14 +21,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 				const fileUri = vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${fileName}`);
 
-
-				let testItem = controller.createTestItem(mutant.id, `${mutant.id}`, fileUri);
+				let testItem = controller.createTestItem(mutant.id, `${mutant.mutatorName} (${mutant.location.start.line}:${mutant.location.start.column})`, fileUri);
 				testItem.range = new vscode.Range(
 					new vscode.Position(mutant.location.start.line - 1, mutant.location.start.column - 1),
 					new vscode.Position(mutant.location.end.line - 1, mutant.location.end.column - 1)
 				);
-				testItem.description = `Mutator: ${mutant.mutatorName}, Status: ${mutant.status}`;
+				testItem.description = `${mutant.status}`;
 				testItem.canResolveChildren = false;
+				testItem.sortText = `${mutant.id}`;
+
 				tests.push(testItem);
 			}
 		}
@@ -37,13 +39,10 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('stryker-mutator.loadJsonReport', async file => {
 		const mutationReport = await readMutationReport(file);
 
-		// // set the controller items to those read from the file:
 		const tests = readTestsFromMutationReport(mutationReport);
 
 		controller.items.replace(tests);
 
-		// create your own custom test run, then you can immediately set the state of
-		// items in the run and end it to publish results:
 		const run = controller.createTestRun(
 			new vscode.TestRunRequest(),
 			'stryker-mutator',
@@ -63,18 +62,29 @@ export function activate(context: vscode.ExtensionContext) {
 				if (mutant.status === 'Killed') {
 					run.passed(testItem);
 				} else {
-					run.failed(testItem, new vscode.TestMessage(`Mutator: ${mutant.mutatorName}, Status: ${mutant.status}`));
+					const message = new vscode.TestMessage(`${mutant.mutatorName} (${mutant.location.start.line}:${mutant.location.start.column}) ${mutant.status}`);
+
+					await vscode.workspace.fs.readFile(vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${fileName}`)).then((contents) => {
+
+						const lines = contents.toString().split('\n');
+						const startLine = mutant.location.start.line - 1;
+						const endLine = mutant.location.end.line - 1;
+
+						let code = lines.slice(startLine, endLine + 1).join('\n');
+						const startColumn = mutant.location.start.column - 1;
+						const endColumn = mutant.location.end.column - 1;
+
+						code = code.substring(startColumn, endColumn);
+						message.expectedOutput = code;
+						message.actualOutput = mutant.replacement;
+
+						run.failed(testItem, message);
+					});
+
 				}
 			}
 		}
 
-		// for (const result of info) {
-		//   if (result.passed) {
-		// 	run.passed(result.item);
-		//   } else {
-		// 	run.failed(result.item, new vscode.TestMessage(result.message));
-		//   }
-		// }
 		run.end();
 
 		vscode.window.showInformationMessage('Mutation tests loaded');
