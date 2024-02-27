@@ -17,8 +17,20 @@
       {
         "command": "stryker-mutator.runOnWorkspace",
         "title": "Stryker: Run on workspace"
+      },
+      {
+        "command": "stryker-mutator.runOnSelection",
+        "title": "Stryker: Run On Selection (for testing purposes only)"
       }
-    ]
+    ],
+    "menus": {
+      "testing/message/content": [
+        {
+          "command": "stryker-mutator.runOnSelection",
+          "when": "testMessage == singleTest"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

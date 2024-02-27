@@ -2,9 +2,118 @@ import * as vscode from 'vscode';
 import { exec, ExecException } from 'child_process';
 
 
+
+function findRecursiveInCollection(tests: vscode.TestItemCollection, id: string): vscode.TestItem | undefined {
+	for (const test of tests) {
+		if (test[0] === id) {
+			return test[1];
+		}
+
+		const result = findRecursiveInCollection(test[1].children, id);
+		if (result) {
+			return result;
+		}
+	}
+	return undefined;
+}
+
+function findRecursive(tests: vscode.TestItem[], id: string): vscode.TestItem | undefined {
+	for (const test of tests) {
+		if (test.id === id) {
+			return test;
+		}
+		const result = findRecursiveInCollection(test.children, id);
+		if (result) {
+			return result;
+		}
+	}
+	return undefined;
+}
+
 export function activate(context: vscode.ExtensionContext) {
 
 	const controller = vscode.tests.createTestController('stryker-mutator', 'Stryker Mutator');
+
+
+	async function runHandler(
+		shouldDebug: boolean,
+		request: vscode.TestRunRequest,
+		token: vscode.CancellationToken
+	) {
+		const run = controller.createTestRun(request);
+		const queue: vscode.TestItem[] = [];
+
+		if (request.include) {
+			request.include.forEach(test => queue.push(test));
+		} else {
+			controller.items.forEach(test => queue.push(test));
+		}
+
+		controller.invalidateTestResults();
+
+		while (queue.length > 0 && !token.isCancellationRequested) {
+			const test = queue.pop()!;
+
+			let command = "npx stryker run";
+
+			let type;
+
+			if (test.range) {
+				command += ` --mutate ${test.uri?.path}:${test.range.start.line + 1}:` +
+					`${test.range.start.character}-${test.range.end.line + 1}:${test.range.end.character + 1}`;
+
+				type = "mutation";
+			} else {
+				command += ` --mutate ${test.uri?.path}`;
+
+				type = "file";
+			}
+
+			test.busy = true;
+			console.log(command);
+
+			const util = require('util');
+			const exec = util.promisify(require('child_process').exec);
+
+			const start = Date.now();
+
+			const { stdout, stderr } = await exec(command, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
+			console.log(stdout);
+
+			const mutationReport = await readMutationReport(vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/reports/mutation/mutation.json`));
+
+			const tests: vscode.TestItem[] = readTestsFromMutationReport(mutationReport);
+
+			if (type === "mutation") {
+				const reportTestItem = findRecursive(tests, test.id);
+				if (reportTestItem) {
+					test.error = undefined;
+					if (reportTestItem.description === 'Killed') {
+						run.passed(test, Date.now() - start);
+					} else {
+
+						run.failed(test, new vscode.TestMessage("test failed (TODO: details)"), Date.now() - start);
+
+					}
+				} else {
+					run.appendOutput(`Mutation not found at specified location, please re-run file. Mutation: ${test.id}\n`);
+
+					test.error = `Mutation not found at specified location, please re-run file.`;
+				}
+			} else {
+				// TODO test all children recursively
+			}
+
+			test.busy = false;
+		}
+
+		run.end();
+	}
+
+
+	controller.createRunProfile('Run', vscode.TestRunProfileKind.Run, (request, token) => {
+		runHandler(false, request, token);
+	});
 
 	const readMutationReport = async (file: vscode.Uri) => {
 		const contents = await vscode.workspace.fs.readFile(file);
@@ -23,14 +132,16 @@ export function activate(context: vscode.ExtensionContext) {
 
 				const fileUri = vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${fileName}`);
 
-				let testItem = controller.createTestItem(mutant.id, `${mutant.mutatorName} (${mutant.location.start.line}:${mutant.location.start.column})`, fileUri);
+				const mutantId = `${mutant.mutatorName}(${mutant.location.start.line}:${mutant.location.start.column}-${mutant.location.end.line}:${mutant.location.end.column}) (${mutant.replacement})`;
+
+				let testItem = controller.createTestItem(mutantId, `${mutant.mutatorName} (${mutant.location.start.line}:${mutant.location.start.column})`, fileUri);
 				testItem.range = new vscode.Range(
 					new vscode.Position(mutant.location.start.line - 1, mutant.location.start.column - 1),
 					new vscode.Position(mutant.location.end.line - 1, mutant.location.end.column - 1)
 				);
 				testItem.description = `${mutant.status}`;
 				testItem.canResolveChildren = false;
-				testItem.sortText = `${mutant.id}`;
+				// testItem.sortText = undefined;
 
 				folderTestItem.children.add(testItem);
 			}
@@ -40,7 +151,7 @@ export function activate(context: vscode.ExtensionContext) {
 		return tests;
 	};
 
-	context.subscriptions.push(vscode.commands.registerCommand('stryker-mutator.loadJsonReport', async file => {
+	context.subscriptions.push(vscode.commands.registerCommand('stryker-mutator.loadJsonToTestExplorer', async file => {
 		const mutationReport = await readMutationReport(file);
 
 		const tests = readTestsFromMutationReport(mutationReport);
@@ -50,7 +161,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const run = controller.createTestRun(
 			new vscode.TestRunRequest(),
 			'stryker-mutator',
-			false
+			true
 		);
 
 
@@ -60,7 +171,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 			for (const mutant of file.mutants) {
 
-				const testItem = controller.items.get(fileName)?.children.get(mutant.id);
+				const mutantId = `${mutant.mutatorName}(${mutant.location.start.line}:${mutant.location.start.column}-${mutant.location.end.line}:${mutant.location.end.column}) (${mutant.replacement})`;
+
+				const testItem = controller.items.get(fileName)?.children.get(mutantId);
 
 				if (!testItem) { continue; }
 
@@ -82,6 +195,7 @@ export function activate(context: vscode.ExtensionContext) {
 						code = code.substring(startColumn, endColumn);
 						message.expectedOutput = code;
 						message.actualOutput = mutant.replacement;
+						message.contextValue = "singleTest";
 
 						run.failed(testItem, message);
 					});
@@ -125,7 +239,7 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 				console.log(stdout);
 
-				vscode.commands.executeCommand('stryker-mutator.loadJsonReport',
+				vscode.commands.executeCommand('stryker-mutator.loadJsonToTestExplorer',
 					vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/reports/mutation/mutation.json`));
 			});
 	};
@@ -133,6 +247,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 	context.subscriptions.push(vscode.commands.registerCommand("stryker-mutator.runOnWorkspace", runAllTestsCommandHandler));
+
+
+	context.subscriptions.push(vscode.commands.registerCommand('stryker-mutator.runOnSelection', async ({ message, test }) => {
+		console.log();
+	}));
 }
 
 export function deactivate() { }
