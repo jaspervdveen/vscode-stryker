@@ -67,6 +67,11 @@ export function activate(context: vscode.ExtensionContext) {
 				command += ` --mutate ${test.uri?.path}`;
 
 				type = "file";
+
+
+				test.children.forEach((child) => {
+					child.busy = true;
+				});
 			}
 
 			test.busy = true;
@@ -82,10 +87,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 			const mutationReport = await readMutationReport(vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/reports/mutation/mutation.json`));
 
-			const tests: vscode.TestItem[] = readTestsFromMutationReport(mutationReport);
+			const testsFromReport: vscode.TestItem[] = readTestsFromMutationReport(mutationReport);
 
 			if (type === "mutation") {
-				const reportTestItem = findRecursive(tests, test.id);
+				const reportTestItem = findRecursive(testsFromReport, test.id);
 				if (reportTestItem) {
 					test.error = undefined;
 					if (reportTestItem.description === 'Killed') {
@@ -101,7 +106,23 @@ export function activate(context: vscode.ExtensionContext) {
 					test.error = `Mutation not found at specified location, please re-run file.`;
 				}
 			} else {
-				// TODO test all children recursively
+				// test item is a file
+
+				testsFromReport[0].children.forEach((testFromReport) => {
+					const testItem = findRecursiveInCollection(test.children, testFromReport.id);
+
+					if (testItem) {
+						if (testFromReport.description === 'Killed') {
+							run.passed(testItem, Date.now() - start);
+						} else {
+							run.failed(testItem, new vscode.TestMessage("test failed (TODO: details)"), Date.now() - start);
+						}
+						testItem.busy = false;
+					} else {
+						test.children.delete(testFromReport.id);
+						test.children.add(testFromReport);
+					}
+				});
 			}
 
 			test.busy = false;
