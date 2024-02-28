@@ -30,17 +30,28 @@ function findRecursive(tests: vscode.TestItem[], id: string): vscode.TestItem | 
 	return undefined;
 }
 
+function ToTestItemArray(tests: vscode.TestItemCollection): vscode.TestItem[] {
+	const result: vscode.TestItem[] = [];
+
+	for (const test of tests) {
+		result.push(test[1]);
+		result.push(...ToTestItemArray(test[1].children));
+	}
+
+	return result;
+}
+
+
 export function activate(context: vscode.ExtensionContext) {
 
 	const controller = vscode.tests.createTestController('stryker-mutator', 'Stryker Mutator');
-
 
 	async function runHandler(
 		shouldDebug: boolean,
 		request: vscode.TestRunRequest,
 		token: vscode.CancellationToken
 	) {
-		const run = controller.createTestRun(request);
+		const run = controller.createTestRun(request, "stryker-mutator", true);
 		const queue: vscode.TestItem[] = [];
 
 		if (request.include) {
@@ -106,16 +117,18 @@ export function activate(context: vscode.ExtensionContext) {
 					test.error = `Mutation not found at specified location, please re-run file.`;
 				}
 			} else {
-				// test item is a file
+				const durationPerTest = (Date.now() - start) / testsFromReport[0].children.size;
+
+				test.children.replace(ToTestItemArray(testsFromReport[0].children));
 
 				testsFromReport[0].children.forEach((testFromReport) => {
 					const testItem = findRecursiveInCollection(test.children, testFromReport.id);
 
 					if (testItem) {
 						if (testFromReport.description === 'Killed') {
-							run.passed(testItem, Date.now() - start);
+							run.passed(testItem, durationPerTest);
 						} else {
-							run.failed(testItem, new vscode.TestMessage("test failed (TODO: details)"), Date.now() - start);
+							run.failed(testItem, new vscode.TestMessage("test failed (TODO: details)"), durationPerTest);
 						}
 						testItem.busy = false;
 					} else {
