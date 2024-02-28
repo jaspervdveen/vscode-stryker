@@ -41,6 +41,48 @@ function ToTestItemArray(tests: vscode.TestItemCollection): vscode.TestItem[] {
 	return result;
 }
 
+function FindMutantById(mutationReport: any, id: string): ({ mutant: any, fileName: string }) | undefined {
+	for (const fileName in mutationReport.files) {
+		const file = mutationReport.files[fileName];
+
+		for (const mutant of file.mutants) {
+			const mutantId = `${mutant.mutatorName}(${mutant.location.start.line}:${mutant.location.start.column}-${mutant.location.end.line}:${mutant.location.end.column}) (${mutant.replacement})`;
+
+			if (mutantId === id) {
+				return { mutant, fileName };
+			}
+		}
+	}
+
+	return undefined;
+}
+
+async function CreateTestMessage(test: vscode.TestItem, mutationReport: any) {
+	const result = FindMutantById(mutationReport, test.id);
+	const mutant = result!.mutant;
+	const fileName = result!.fileName;
+
+	const message = new vscode.TestMessage(`${mutant.mutatorName} (${mutant.location.start.line}:${mutant.location.start.column}) ${mutant.status}`);
+
+	await vscode.workspace.fs.readFile(vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${fileName}`)).then((contents) => {
+
+		const lines = contents.toString().split('\n');
+		const startLine = mutant.location.start.line - 1;
+		const endLine = mutant.location.end.line - 1;
+
+		let code = lines.slice(startLine, endLine + 1).join('\n');
+		const startColumn = mutant.location.start.column - 1;
+		const endColumn = mutant.location.end.column - 1;
+
+		code = code.substring(startColumn, endColumn);
+		message.expectedOutput = code;
+		message.actualOutput = mutant.replacement;
+		message.contextValue = "singleTest";
+	});
+
+	return message;
+}
+
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -64,10 +106,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 		while (queue.length > 0 && !token.isCancellationRequested) {
 			const test = queue.pop()!;
+			test.busy = true;
+
 
 			let command = "npx stryker run";
 
 			let type;
+
 
 			if (test.range) {
 				command += ` --mutate ${test.uri?.path}:${test.range.start.line + 1}:` +
@@ -79,13 +124,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 				type = "file";
 
-
 				test.children.forEach((child) => {
 					child.busy = true;
 				});
 			}
 
-			test.busy = true;
 			console.log(command);
 
 			const util = require('util');
@@ -107,8 +150,8 @@ export function activate(context: vscode.ExtensionContext) {
 					if (reportTestItem.description === 'Killed') {
 						run.passed(test, Date.now() - start);
 					} else {
-
-						run.failed(test, new vscode.TestMessage("test failed (TODO: details)"), Date.now() - start);
+						const message = await CreateTestMessage(test, mutationReport);
+						run.failed(test, message, Date.now() - start);
 
 					}
 				} else {
@@ -121,21 +164,81 @@ export function activate(context: vscode.ExtensionContext) {
 
 				test.children.replace(ToTestItemArray(testsFromReport[0].children));
 
-				testsFromReport[0].children.forEach((testFromReport) => {
-					const testItem = findRecursiveInCollection(test.children, testFromReport.id);
+				// for (const testFromReport of testsFromReport[0].children) {
+				// 	const testItem = findRecursiveInCollection(test.children, testFromReport[1].id);
+
+				// 	if (testItem) {
+				// 		if (testFromReport[1].description === 'Killed') {
+				// 			run.passed(testItem, durationPerTest);
+				// 		} else {
+				// 			const message = await CreateTestMessage(test, mutationReport);
+				// 			run.failed(testItem, message, durationPerTest);
+				// 		}
+				// 		testItem.busy = false;
+				// 	} else {
+				// 		test.children.delete(testFromReport[1].id);
+				// 		test.children.add(testFromReport[1]);
+				// 	}
+				// }
+
+				// for (const reportItem of testsFromReport[0].children) {
+				// 	const testFromReport = reportItem[1];
+
+				// 	const testItem = findRecursiveInCollection(test.children, reportItem[0]);
+
+				// 	if (testItem) {
+				// 		if (testFromReport.description === 'Killed') {
+				// 			run.passed(testItem, durationPerTest);
+				// 		} else {
+				// 			const message = await CreateTestMessage(test, mutationReport);
+				// 			run.failed(testItem, message, durationPerTest);
+				// 		}
+				// 		testItem.busy = false;
+				// 	} else {
+				// 		test.children.delete(reportItem[0]);
+				// 		test.children.add(testFromReport);
+				// 	}
+				// }
+
+
+				// testsFromReport[0].children.forEach(async (testFromReport: vscode.TestItem) => {
+				// 	const testItem = findRecursiveInCollection(test.children, testFromReport.id);
+
+				// 	if (testItem) {
+				// 		if (testFromReport.description === 'Killed') {
+				// 			run.passed(testItem, durationPerTest);
+				// 		} else {
+				// 			// const message = await CreateTestMessage(test, mutationReport);
+
+				// 			const message = new vscode.TestMessage("test");
+				// 			run.failed(testItem, message, durationPerTest);
+				// 		}
+				// 		testItem.busy = false;
+				// 	} else {
+				// 		test.children.delete(testFromReport.id);
+				// 		test.children.add(testFromReport);
+				// 	}
+				// });
+
+
+				// rewrite foreach to normal loop
+
+				for (const testFromReport of testsFromReport[0].children) {
+					const testItem = findRecursiveInCollection(test.children, testFromReport[1].id);
 
 					if (testItem) {
-						if (testFromReport.description === 'Killed') {
+						if (testFromReport[1].description === 'Killed') {
 							run.passed(testItem, durationPerTest);
 						} else {
-							run.failed(testItem, new vscode.TestMessage("test failed (TODO: details)"), durationPerTest);
+							const message = await CreateTestMessage(testItem, mutationReport);
+							run.failed(testItem, message, durationPerTest);
 						}
 						testItem.busy = false;
 					} else {
-						test.children.delete(testFromReport.id);
-						test.children.add(testFromReport);
+						test.children.delete(testFromReport[1].id);
+						test.children.add(testFromReport[1]);
 					}
-				});
+				}
 			}
 
 			test.busy = false;
