@@ -109,7 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
 			test.busy = true;
 
 
-			let command = "npx stryker run";
+			let command = "npx stryker run --incremental";
 
 			let type;
 
@@ -155,7 +155,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 					}
 				} else {
-					run.appendOutput(`Mutation not found at specified location, please re-run file. Mutation: ${test.id}\n`);
+					run.errored(test, new vscode.TestMessage(`Mutation not found at specified location, please re-run file`), Date.now() - start);
 
 					test.error = `Mutation not found at specified location, please re-run file.`;
 				}
@@ -163,65 +163,6 @@ export function activate(context: vscode.ExtensionContext) {
 				const durationPerTest = (Date.now() - start) / testsFromReport[0].children.size;
 
 				test.children.replace(ToTestItemArray(testsFromReport[0].children));
-
-				// for (const testFromReport of testsFromReport[0].children) {
-				// 	const testItem = findRecursiveInCollection(test.children, testFromReport[1].id);
-
-				// 	if (testItem) {
-				// 		if (testFromReport[1].description === 'Killed') {
-				// 			run.passed(testItem, durationPerTest);
-				// 		} else {
-				// 			const message = await CreateTestMessage(test, mutationReport);
-				// 			run.failed(testItem, message, durationPerTest);
-				// 		}
-				// 		testItem.busy = false;
-				// 	} else {
-				// 		test.children.delete(testFromReport[1].id);
-				// 		test.children.add(testFromReport[1]);
-				// 	}
-				// }
-
-				// for (const reportItem of testsFromReport[0].children) {
-				// 	const testFromReport = reportItem[1];
-
-				// 	const testItem = findRecursiveInCollection(test.children, reportItem[0]);
-
-				// 	if (testItem) {
-				// 		if (testFromReport.description === 'Killed') {
-				// 			run.passed(testItem, durationPerTest);
-				// 		} else {
-				// 			const message = await CreateTestMessage(test, mutationReport);
-				// 			run.failed(testItem, message, durationPerTest);
-				// 		}
-				// 		testItem.busy = false;
-				// 	} else {
-				// 		test.children.delete(reportItem[0]);
-				// 		test.children.add(testFromReport);
-				// 	}
-				// }
-
-
-				// testsFromReport[0].children.forEach(async (testFromReport: vscode.TestItem) => {
-				// 	const testItem = findRecursiveInCollection(test.children, testFromReport.id);
-
-				// 	if (testItem) {
-				// 		if (testFromReport.description === 'Killed') {
-				// 			run.passed(testItem, durationPerTest);
-				// 		} else {
-				// 			// const message = await CreateTestMessage(test, mutationReport);
-
-				// 			const message = new vscode.TestMessage("test");
-				// 			run.failed(testItem, message, durationPerTest);
-				// 		}
-				// 		testItem.busy = false;
-				// 	} else {
-				// 		test.children.delete(testFromReport.id);
-				// 		test.children.add(testFromReport);
-				// 	}
-				// });
-
-
-				// rewrite foreach to normal loop
 
 				for (const testFromReport of testsFromReport[0].children) {
 					const testItem = findRecursiveInCollection(test.children, testFromReport[1].id);
@@ -359,7 +300,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		// all of these paths work
 		const command = `${vscode.workspace.workspaceFolders[0].uri.fsPath}/node_modules/.bin/stryker run`;
-		const command2 = `npx stryker run`;
+		const command2 = `npx stryker run --incremental`;
 		const command3 = `./node_modules/.bin/stryker run`;
 
 		vscode.window.showInformationMessage('Running mutation tests...');
