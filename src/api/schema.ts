@@ -1,7 +1,6 @@
-// const MutationTestResult = import("mutation-testing-report-schema");
-// export type MutationTestResult = typeof MutationTestResult;
-
-// TODO: Change as this is a temp fix for vs code extension not recognizing mutation-testing-report-schema
+// TODO: This file is a temp fix for vs code extension not supporting ES modules such as mutation-testing-report-schema
+// https://github.com/microsoft/vscode/issues/130367
+// https://github.com/microsoft/vscode-loader/issues/56
 
 /**
  * Result of the mutation.
