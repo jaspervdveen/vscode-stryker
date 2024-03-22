@@ -16,7 +16,7 @@ export class TestControllerHandler {
         this.testController.items.replace(testItems);
     }
 
-    private createTestItems(testItemNodes: TestItemNode[]): vscode.TestItem[] {
+    public createTestItems(testItemNodes: TestItemNode[]): vscode.TestItem[] {
         const testItems = testItemNodes.map(node => {
             const fileUri = node.fullPath ? vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${node.fullPath}`) : undefined;
 
@@ -37,7 +37,7 @@ export class TestControllerHandler {
         return testItems;
     }
 
-    private createTestItem(mutant: MutantResult, fileUri: vscode.Uri): vscode.TestItem {
+    public createTestItem(mutant: MutantResult, fileUri: vscode.Uri): vscode.TestItem {
         const mutantId = `${mutant.mutatorName}(${mutant.location.start.line}:${mutant.location.start.column}-${mutant.location.end.line}:${mutant.location.end.column}) (${mutant.replacement})`;
         const testItem = this.testController.createTestItem(mutantId, `${mutant.mutatorName} (${mutant.location.start.line}:${mutant.location.start.column})`, fileUri);
 
@@ -49,7 +49,7 @@ export class TestControllerHandler {
         return testItem;
     }
 
-    private createTestItemNodeTree(files: FileResultDictionary): TestItemNode[] {
+    public createTestItemNodeTree(files: FileResultDictionary): TestItemNode[] {
         let result: TestItemNode[] = [];
         let level: { result: TestItemNode[] } = { result };
 
