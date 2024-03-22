@@ -18,7 +18,7 @@ export class StrykerJs implements Platform {
             cancellable: false
         }, async () => {
             try {
-                const command = `${this.executable} run --instrumentRunOnly`;
+                const command = `${this.executable} run --instrumentRunOnly --checkers "" --buildCommand "" --plugins "" --testRunner "" --logLevel off`;
                 await executeCommand(command);
 
                 return await FileUtil.readMutationReport(FileUtil.getMutationReportUri());
