@@ -1,14 +1,19 @@
 import * as vscode from 'vscode';
+import { PlatformFactory } from './platforms/platform-factory.js';
+import { TestControllerHandler } from './utils/test-controller-handler.js';
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 
-	console.log('Congratulations, your extension "stryker-mutator" is now active!');
+	vscode.window.showInformationMessage('Starting mutation testing instrumentation run');
+	const controller = vscode.tests.createTestController('stryker-mutator', 'Stryker Mutator');
+	const testControllerHandler = new TestControllerHandler(controller);
 
-	let disposable = vscode.commands.registerCommand('stryker-mutator.helloWorld', () => {
-	vscode.window.showInformationMessage('Hello World from Stryker Mutator!');
+	const platform = new PlatformFactory().getPlatform();
+
+	platform.instrumentationRun().then((result) => {
+		testControllerHandler.updateTestExplorer(result);
+		vscode.window.showInformationMessage('Instrumentation run completed');
 	});
-
-	context.subscriptions.push(disposable);
 }
 
 export function deactivate() {}
