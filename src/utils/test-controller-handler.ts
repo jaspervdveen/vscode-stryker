@@ -1,4 +1,4 @@
-import { FileResultDictionary, MutantResult, MutationTestResult } from "../api/schema";
+import { FileResultDictionary, MutantResult, MutationTestResult } from "mutation-testing-report-schema";
 import { TestItemNode } from "../api/test-item-node";
 import * as vscode from 'vscode';
 

@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { TestControllerHandler } from '../utils/test-controller-handler';
-import { MutantResult, MutationTestResult } from '../api/schema';
 import * as vscode from 'vscode';
+import { MutantResult, MutationTestResult } from 'mutation-testing-report-schema';
 
 suite('test-controller-handler', () => {
 

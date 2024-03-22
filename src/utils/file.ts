@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { config } from '../config.js';
-import { MutationTestResult } from '../api/schema.js';
+import { MutationTestResult } from 'mutation-testing-report-schema';
 
 export class FileUtil {
     static async readMutationReport(file: vscode.Uri): Promise<MutationTestResult> {

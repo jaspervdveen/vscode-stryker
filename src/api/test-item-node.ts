@@ -1,4 +1,4 @@
-import { MutantResult } from "./schema";
+import { MutantResult } from "mutation-testing-report-schema";
 
 export interface TestItemNode {
     name: string;

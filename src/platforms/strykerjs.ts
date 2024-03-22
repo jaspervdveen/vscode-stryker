@@ -2,8 +2,8 @@ import { executeCommand } from "../utils/executor.js";
 import { Platform } from "./platform.js";
 import { errorNotification } from "../utils/reporter.js";
 import { FileUtil } from "../utils/file.js";
-import { MutationTestResult } from "../api/schema.js";
 import { ProgressLocation, window } from "vscode";
+import { MutationTestResult } from "mutation-testing-report-schema";
 
 export class StrykerJs implements Platform {
 
