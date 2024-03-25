@@ -9,7 +9,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const controller = vscode.tests.createTestController(config.app.name, config.app.name);
 	const testControllerHandler = new TestControllerHandler(controller);
 
-	const platform = new PlatformFactory().getPlatform();
+	const platform = PlatformFactory.getPlatform();
 
 	platform.instrumentationRun().then((result) => {
 		testControllerHandler.updateTestExplorer(result);
