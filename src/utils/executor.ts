@@ -5,6 +5,6 @@ import { config } from '../config.js';
 const exec = promisify(execCallback);
 
 export function executeCommand(command: string) {
-    console.log(config.currentWorkingDirectory);
-    return exec(command, { cwd: config.currentWorkingDirectory });
+    console.log(config.app.currentWorkingDirectory);
+    return exec(command, { cwd: config.app.currentWorkingDirectory });
 }

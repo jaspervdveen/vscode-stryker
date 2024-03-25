@@ -8,12 +8,12 @@ export class FileUtil {
             const contents = await vscode.workspace.fs.readFile(file);
             return JSON.parse(contents.toString());
         } catch (error) {
-            console.error('Error reading mutation report:', error);
+            console.error(config.errors.reportReadingFailed, error);
             throw error;
         }
     }
 
     static getMutationReportUri(): vscode.Uri {
-        return vscode.Uri.file(config.currentWorkingDirectory + config.jsonReporterFilename);
+        return vscode.Uri.file(config.app.currentWorkingDirectory + config.app.jsonReporterFilename);
     }
 }

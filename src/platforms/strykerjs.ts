@@ -4,6 +4,7 @@ import { errorNotification } from "../utils/reporter.js";
 import { FileUtil } from "../utils/file.js";
 import { ProgressLocation, window } from "vscode";
 import { MutationTestResult } from "mutation-testing-report-schema";
+import { config } from "../config.js";
 
 export class StrykerJs implements Platform {
 
@@ -14,7 +15,7 @@ export class StrykerJs implements Platform {
     async instrumentationRun(): Promise<MutationTestResult> {
         return await window.withProgress({
             location: ProgressLocation.Window,
-            title: 'Stryker: Instrumenting code',
+            title: config.messages.instrumentationRunning,
             cancellable: false
         }, async () => {
             try {
@@ -24,8 +25,8 @@ export class StrykerJs implements Platform {
 
                 return await FileUtil.readMutationReport(FileUtil.getMutationReportUri());
             } catch (error) {
-                errorNotification('Stryker: Error running instrumentation');
-                throw new Error('Stryker: Error running instrumentation');
+                errorNotification(config.errors.instrumentationFailed);
+                throw new Error(config.errors.instrumentationFailed);
             }
         });
     }
