@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { PlatformFactory } from './platforms/platform-factory.js';
-import { TestControllerHandler } from './utils/test-controller-handler.js';
+import { TestControllerHandler } from './handlers/test-controller-handler.js';
 import { config } from './config.js';
-import { FileChangeHandler } from './utils/file-change-handler.js';
+import { FileChangeHandler } from './handlers/file-change-handler.js';
 
 export async function activate(context: vscode.ExtensionContext) {
 

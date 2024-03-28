@@ -3,8 +3,8 @@ import { Platform } from "./platform.js";
 import { MutationTestResult } from "mutation-testing-report-schema";
 import { config } from "../config.js";
 import { spawnSync } from "child_process";
-import { FileUtil } from "../utils/file.js";
-import { errorNotification } from "../utils/reporter.js";
+import { fileUtils } from "../utils/file-utils.js";
+import { reporterUtils } from "../utils/reporter-utils.js";
 
 export class StrykerJs extends Platform {
 
@@ -35,9 +35,9 @@ export class StrykerJs extends Platform {
         }, async () => {
             try {
                 const result = spawnSync(this.executable, args, { cwd: config.app.currentWorkingDirectory });
-                return await FileUtil.readMutationReport(FileUtil.getMutationReportUri());
+                return await fileUtils.readMutationReport(fileUtils.getMutationReportUri());
             } catch (error) {
-                errorNotification(config.errors.instrumentationFailed);
+                reporterUtils.errorNotification(config.errors.instrumentationFailed);
                 throw new Error(config.errors.instrumentationFailed);
             }
         });
@@ -60,9 +60,9 @@ export class StrykerJs extends Platform {
         }, async () => {
             try {
                 const result = spawnSync(this.executable, args, { cwd: config.app.currentWorkingDirectory });
-                return await FileUtil.readMutationReport(FileUtil.getMutationReportUri());
+                return await fileUtils.readMutationReport(fileUtils.getMutationReportUri());
             } catch (error) {
-                errorNotification(config.errors.mutationTestingFailed);
+                reporterUtils.errorNotification(config.errors.mutationTestingFailed);
                 throw new Error(config.errors.mutationTestingFailed);
             }
         });

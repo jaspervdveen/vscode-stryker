@@ -1,7 +1,8 @@
 import * as assert from 'assert';
-import { TestControllerHandler } from '../utils/test-controller-handler';
+import { TestControllerHandler } from '../handlers/test-controller-handler';
 import * as vscode from 'vscode';
 import { MutantResult, MutationTestResult } from 'mutation-testing-report-schema';
+import { testItemUtils } from '../utils/test-item-utils';
 
 suite('test-controller-handler', () => {
 
@@ -86,7 +87,7 @@ suite('test-controller-handler', () => {
       replacement: "+"
     };
 
-    const testItem = testControllerHandler.createTestItem(mutantResult, vscode.Uri.file("src/services/myService.js"));
+    const testItem = testItemUtils.createTestItem(mutantResult, vscode.Uri.file("src/services/myService.js"), testController);
 
     assert.strictEqual(testItem.id, "BinaryOperator(1:1-1:2) (+)");
     assert.strictEqual(testItem.label, "BinaryOperator (1:1)");
@@ -99,7 +100,7 @@ suite('test-controller-handler', () => {
   test('should create test item tree node', () => {
     const testControllerHandler = new TestControllerHandler(testController);
 
-    const testItemNodes = testControllerHandler.createTestItemNodeTree(mutationReport.files);
+    const testItemNodes = testItemUtils.createTestItemNodeTree(mutationReport.files);
 
     assert.strictEqual(testItemNodes.length, 1);
     assert.strictEqual(testItemNodes[0].name, "src");
