@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { PlatformFactory } from './platforms/platform-factory.js';
 import { TestControllerHandler } from './utils/test-controller-handler.js';
 import { config } from './config.js';
+import { FileChangeHandler } from './utils/file-change-handler.js';
 
 export async function activate(context: vscode.ExtensionContext) {
 
@@ -12,9 +13,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	const platform = PlatformFactory.getPlatform();
 
 	platform.instrumentationRun().then((result) => {
-		testControllerHandler.updateTestExplorer(result);
+		testControllerHandler.replaceTestExplorerContent(result);
 		vscode.window.showInformationMessage(config.messages.instrumentationCompleted);
 	});
+
+	new FileChangeHandler(platform, testControllerHandler);
 }
 
 export function deactivate() {}
