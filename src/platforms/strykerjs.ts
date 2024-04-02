@@ -26,7 +26,8 @@ export class StrykerJs extends Platform {
         ];
 
         if (globPatterns) {
-            args.push('--mutate', globPatterns.join(','));
+            // TODO: fix copying folders not updating the test explorer
+            args.push('--mutate', globPatterns.join());
         }
 
         return await window.withProgress({
@@ -49,7 +50,7 @@ export class StrykerJs extends Platform {
             '--fileLogLevel', 'trace',
             '--reporters', 'json'
         ];
-        
+
         if (globPatterns) {
             args.push('--mutate', globPatterns.join(','));
         }

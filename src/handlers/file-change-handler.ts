@@ -8,8 +8,6 @@ export class FileChangeHandler {
     #changedFilePath$Subject = new Subject<string>();
     changedFilePath$ = this.#changedFilePath$Subject.asObservable();
 
-    #createdFilePath$Subject = new Subject<string>();
-    createdFilePath$ = this.#createdFilePath$Subject.asObservable();
 
     #deletedFilePath$Subject = new Subject<string>();
     deletedFilePath$ = this.#deletedFilePath$Subject.asObservable();
@@ -29,15 +27,6 @@ export class FileChangeHandler {
             );
         });
 
-        const createdFileBufferedPath$ = this.createdFilePath$
-            .pipe(buffer(this.createdFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
-
-        createdFileBufferedPath$.subscribe(paths => {
-            platform.instrumentationRun(paths).then((result) =>
-                testControllerHandler.addToTestExplorer(result)
-            );
-        });
-
         const deletedFileBufferedPath$ = this.deletedFilePath$
             .pipe(buffer(this.deletedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
 
@@ -53,7 +42,7 @@ export class FileChangeHandler {
         }
 
         vscode.workspace.workspaceFolders.map(async workspaceFolder => {
-            const pattern = new vscode.RelativePattern(workspaceFolder, 'src/**/*'); // TODO: Get from workspace Stryker config
+            const pattern = new vscode.RelativePattern(workspaceFolder, '{src/**/*,!{**/*.git}'); // TODO: Get from workspace Stryker config
 
             const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
@@ -62,15 +51,15 @@ export class FileChangeHandler {
                 const uriIsFolder = !uri.fsPath.includes('.');
                 if (uriIsFolder) {
                     // match all files in the folder
-                    uri = vscode.Uri.parse(uri.fsPath + '/**');
+                    uri = vscode.Uri.parse(uri.fsPath + '/**/*');
                 }
 
-                this.#createdFilePath$Subject.next(uri.fsPath);
+                this.#changedFilePath$Subject.next(uri.fsPath);
             });
 
             // called on file content change
             watcher.onDidChange(uri => {
-                this.#changedFilePath$Subject.next(uri.fsPath);
+                                this.#changedFilePath$Subject.next(uri.fsPath);
             });
 
             // called on file/folder deletion and file/folder path changes
