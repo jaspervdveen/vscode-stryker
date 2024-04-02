@@ -7,6 +7,6 @@ export abstract class Platform {
         this.executable = executable;
     }
 
-    public abstract instrumentationRun(files?: string[]): Promise<MutationTestResult>;
-    public abstract mutationTestingRun(files?: string[]): Promise<MutationTestResult>;
+    public abstract instrumentationRun(globPatterns?: string[]): Promise<MutationTestResult>;
+    public abstract mutationTestingRun(globPatterns?: string[]): Promise<MutationTestResult>;
 }

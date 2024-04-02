@@ -14,7 +14,7 @@ export class StrykerJs extends Platform {
         super('/home/jasper/repos/stryker-js/packages/core/bin/stryker.js');
     }
 
-    async instrumentationRun(files?: string[]): Promise<MutationTestResult> {
+    async instrumentationRun(globPatterns?: string[]): Promise<MutationTestResult> {
         const args = [
             'run',
             '--checkers', '',
@@ -25,8 +25,8 @@ export class StrykerJs extends Platform {
             '--instrumentRunOnly'
         ];
 
-        if (files) {
-            args.push('--mutate', files.join(','));
+        if (globPatterns) {
+            args.push('--mutate', globPatterns.join(','));
         }
 
         return await window.withProgress({
@@ -34,7 +34,7 @@ export class StrykerJs extends Platform {
             title: config.messages.instrumentationRunning,
         }, async () => {
             try {
-                const result = spawnSync(this.executable, args, { cwd: config.app.currentWorkingDirectory });
+                spawnSync(this.executable, args, { cwd: config.app.currentWorkingDirectory });
                 return await fileUtils.readMutationReport(fileUtils.getMutationReportUri());
             } catch (error) {
                 reporterUtils.errorNotification(config.errors.instrumentationFailed);
@@ -43,15 +43,15 @@ export class StrykerJs extends Platform {
         });
     }
 
-    async mutationTestingRun(files?: string[]): Promise<MutationTestResult> {
+    async mutationTestingRun(globPatterns?: string[]): Promise<MutationTestResult> {
         let args: string[] = [
             'run',
             '--fileLogLevel', 'trace',
             '--reporters', 'json'
         ];
         
-        if (files) {
-            args.push('--mutate', files.join(','));
+        if (globPatterns) {
+            args.push('--mutate', globPatterns.join(','));
         }
 
         return await window.withProgress({
@@ -59,7 +59,7 @@ export class StrykerJs extends Platform {
             title: config.messages.mutationTestingRunning,
         }, async () => {
             try {
-                const result = spawnSync(this.executable, args, { cwd: config.app.currentWorkingDirectory });
+                spawnSync(this.executable, args, { cwd: config.app.currentWorkingDirectory });
                 return await fileUtils.readMutationReport(fileUtils.getMutationReportUri());
             } catch (error) {
                 reporterUtils.errorNotification(config.errors.mutationTestingFailed);
