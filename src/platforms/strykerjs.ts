@@ -1,35 +1,39 @@
 import { ProgressLocation, window } from "vscode";
 import { Platform } from "./platform.js";
-import { MutationTestResult } from "mutation-testing-report-schema";
+import { MutantResult, MutationTestResult } from "mutation-testing-report-schema";
 import { config } from "../config.js";
-import { ChildProcess, ChildProcessWithoutNullStreams, spawn, spawnSync } from "child_process";
-import { fileUtils } from "../utils/file-utils.js";
+import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { reporterUtils } from "../utils/reporter-utils.js";
 import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from "json-rpc-2.0";
+import * as net from 'net';
 
 type Methods = {
-    instrument(params: { globPatterns?: string[] }): string;
+    instrument(params: { globPatterns?: string[] }): MutantResult[];
 };
 
 export class StrykerJs implements Platform {
 
     private rpcClient: TypedJSONRPCClient<Methods>;
-    private server: ChildProcessWithoutNullStreams;
+    private socket: net.Socket;
 
     constructor() {
-        // temp path to the unpublished stryker executable while in development
-        // TODO: Make this configurable/autodetect
         const executable = '/home/jasper/repos/stryker-js/packages/core/bin/stryker-server.js';
 
-        this.server = spawn(executable, { cwd: config.app.currentWorkingDirectory });
+        const strykerServer = spawn(executable, { cwd: config.app.currentWorkingDirectory });
 
-        this.server.stdout.on('data', (data: Buffer | string) => {
+        this.socket = net.createConnection({ port: 8080 });
+
+        this.rpcClient = new JSONRPCClient((jsonRpcRequest: JSONRPCRequest) => {
+            this.socket.write(JSON.stringify(jsonRpcRequest) + '\n');
+        });
+
+        this.socket.on('data', (data: Buffer) => {
             let response: JSONRPCResponse | undefined;
 
             try {
                 response = JSON.parse(data.toString());
             } catch (error) {
-                console.log('Error parsing JSON: ', error);
+                console.log('Error parsing JSON: ', data.toString());
             }
 
             if (response) {
@@ -37,12 +41,12 @@ export class StrykerJs implements Platform {
             }
         });
 
-        this.server.on('exit', (code) => {
-            this.rpcClient.rejectAllPendingRequests("Server exited with code " + code);
+        this.socket.on('close', () => {
+            console.log('Connection closed.');
         });
 
-        this.rpcClient = new JSONRPCClient((jsonRpcRequest: JSONRPCRequest) => {
-            this.server.stdin.write(JSON.stringify(jsonRpcRequest) + '\n');
+        this.socket.on('error', (err) => {
+            console.error('Socket Error:', err);
         });
     }
 
