@@ -2,10 +2,10 @@ import { ProgressLocation, window } from "vscode";
 import { Platform } from "./platform.js";
 import { MutantResult, MutationTestResult } from "mutation-testing-report-schema";
 import { config } from "../config.js";
-import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { reporterUtils } from "../utils/reporter-utils.js";
 import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from "json-rpc-2.0";
-import * as net from 'net';
+import { WebSocket, Data } from 'ws';
+import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 
 type Methods = {
     instrument(params: { globPatterns?: string[] }): MutantResult[];
@@ -13,21 +13,37 @@ type Methods = {
 
 export class StrykerJs implements Platform {
 
-    private rpcClient: TypedJSONRPCClient<Methods>;
-    private socket: net.Socket;
-
+    private strykerProcess: ChildProcessWithoutNullStreams;
+    private rpcClient: TypedJSONRPCClient<Methods> | undefined;
+    private webSocket: WebSocket | undefined;
+    private processStarted: boolean = false;
+    
     constructor() {
         const executable = '/home/jasper/repos/stryker-js/packages/core/bin/stryker-server.js';
 
-        const strykerServer = spawn(executable, { cwd: config.app.currentWorkingDirectory });
+        this.strykerProcess = spawn(executable, { cwd: config.app.currentWorkingDirectory });
+    }
 
-        this.socket = net.createConnection({ port: 8080 });
+    public async setup() {
+        await this.waitForProcessStarted();
+        this.setupWebSocketConnection();
 
-        this.rpcClient = new JSONRPCClient((jsonRpcRequest: JSONRPCRequest) => {
-            this.socket.write(JSON.stringify(jsonRpcRequest) + '\n');
+        this.rpcClient = new JSONRPCClient(async (jsonRpcRequest: JSONRPCRequest) => {
+            await this.waitForOpenSocket(this.webSocket!);
+            this.webSocket!.send(JSON.stringify(jsonRpcRequest));
+        });
+    }
+
+    private setupWebSocketConnection() {
+        const wsUrl = 'ws://localhost:8080';
+
+        this.webSocket = new WebSocket(wsUrl);
+
+        this.webSocket.on('open', () => {
+            console.log('WebSocket connection established.');
         });
 
-        this.socket.on('data', (data: Buffer) => {
+        this.webSocket.on('message', (data: Data) => {
             let response: JSONRPCResponse | undefined;
 
             try {
@@ -37,18 +53,18 @@ export class StrykerJs implements Platform {
             }
 
             if (response) {
-                this.rpcClient.receive(response);
+                this.rpcClient!.receive(response);
             }
         });
 
-        this.socket.on('close', () => {
+        this.webSocket.on('close', () => {
             console.log('Connection closed.');
         });
 
-        this.socket.on('error', (err) => {
-            console.error('Socket Error:', err);
+        this.webSocket.on('error', (err) => {
+            console.error('WebSocket Error:', err);
         });
-    }
+    };
 
     async instrumentationRun(globPatterns?: string[]): Promise<MutationTestResult> {
         return await window.withProgress({
@@ -56,37 +72,42 @@ export class StrykerJs implements Platform {
             title: config.messages.instrumentationRunning,
         }, async () => {
             try {
-                const result = await this.rpcClient.request('instrument', { globPatterns: globPatterns });
+                if (!this.rpcClient) {
+                    throw new Error('Setup method not called.');
+                }
 
+                const result = await this.rpcClient.request('instrument', { globPatterns: globPatterns });
                 return {} as MutationTestResult;
             } catch (error) {
                 reporterUtils.errorNotification(config.errors.instrumentationFailed);
-                throw new Error(config.errors.instrumentationFailed);
+                throw error;
             }
         });
     }
 
     async mutationTestingRun(globPatterns?: string[]): Promise<MutationTestResult> {
-        let args: string[] = [
-            'run',
-            '--fileLogLevel', 'trace',
-            '--reporters', 'json'
-        ];
+        throw new Error('Mutation testing is not implemented yet');
+    }
 
-        if (globPatterns) {
-            args.push('--mutate', globPatterns.join(','));
-        }
-
-        return await window.withProgress({
-            location: ProgressLocation.Window,
-            title: config.messages.mutationTestingRunning,
-        }, async () => {
-            try {
-                throw new Error('Not implemented');
-            } catch (error) {
-                reporterUtils.errorNotification(config.errors.mutationTestingFailed);
-                throw new Error(config.errors.mutationTestingFailed);
+    private waitForOpenSocket = (socket: WebSocket): Promise<void> => {
+        return new Promise<void>((resolve) => {
+            if (socket.readyState !== socket.OPEN) {
+                socket.on("open", () => {
+                    resolve();
+                });
+            } else {
+                resolve();
             }
         });
-    }
+    };
+
+    private waitForProcessStarted = async (): Promise<void> => {
+        await new Promise<void>((resolve) => {
+            this.strykerProcess.stdout.on('data', (data) => {
+                if (data.toString().includes('Server started')) {
+                    resolve();
+                }
+            });
+        });
+    };  
 }

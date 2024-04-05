@@ -11,6 +11,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const testControllerHandler = new TestControllerHandler(controller);
 
 	const platform = PlatformFactory.getPlatform();
+	await platform.setup();
 
 	platform.instrumentationRun().then((result) => {
 		testControllerHandler.replaceTestExplorerContent(result);
