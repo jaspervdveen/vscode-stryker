@@ -1,14 +1,14 @@
 import { ProgressLocation, window } from "vscode";
 import { Platform } from "./platform.js";
-import { MutantResult, MutationTestResult } from "mutation-testing-report-schema";
 import { config } from "../config.js";
 import { reporterUtils } from "../utils/reporter-utils.js";
 import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from "json-rpc-2.0";
 import { WebSocket, Data } from 'ws';
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
+import { MutationTestResult } from "mutation-testing-report-schema";
 
 type Methods = {
-    instrument(params: { globPatterns?: string[] }): MutantResult[];
+    instrument(params: { globPatterns?: string[] }): MutationTestResult;
 };
 
 export class StrykerJs implements Platform {
@@ -16,7 +16,6 @@ export class StrykerJs implements Platform {
     private strykerProcess: ChildProcessWithoutNullStreams;
     private rpcClient: TypedJSONRPCClient<Methods> | undefined;
     private webSocket: WebSocket | undefined;
-    private processStarted: boolean = false;
     
     constructor() {
         const executable = '/home/jasper/repos/stryker-js/packages/core/bin/stryker-server.js';
@@ -76,8 +75,7 @@ export class StrykerJs implements Platform {
                     throw new Error('Setup method not called.');
                 }
 
-                const result = await this.rpcClient.request('instrument', { globPatterns: globPatterns });
-                return {} as MutationTestResult;
+                return await this.rpcClient.request('instrument', { globPatterns: globPatterns });
             } catch (error) {
                 reporterUtils.errorNotification(config.errors.instrumentationFailed);
                 throw error;
