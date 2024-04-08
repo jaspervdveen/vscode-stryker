@@ -4,19 +4,26 @@ import { FileResultDictionary, MutantResult } from 'mutation-testing-report-sche
 
 export const testItemUtils = {
 
-    findTestItemById(collection: vscode.TestItemCollection, id: string): vscode.TestItem | undefined {
-        for (const testItem of collection) {
-            if (testItem[1].id === id) {
-                return testItem[1];
+    findFileTestItemByPath(collection: vscode.TestItemCollection, path: string): vscode.TestItem | undefined {
+        const directories = path.split('/');
+        const fileName = directories[directories.length - 1];
+
+        let currentNode = collection;
+
+        // Iterate through the directories to find the file test item in the tree
+        for (const directory of directories) {
+            let node = currentNode.get(directory);
+
+            if (node && node.id === fileName) {
+                return node;
             }
 
-            const found = this.findTestItemById(testItem[1].children, id);
-            if (found) {
-                return found;
+            if (!node) {
+                return undefined;
             }
+
+            currentNode = node.children;
         }
-
-        return undefined;
     },
 
     createTestItems(testItemNodes: TestItemNode[], testController: vscode.TestController): vscode.TestItem[] {

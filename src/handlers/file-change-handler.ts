@@ -1,28 +1,35 @@
-import { Subject, buffer, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, buffer, debounceTime } from 'rxjs';
 import * as vscode from 'vscode';
 import { config } from '../config';
-import { Platform } from '../platforms/platform';
 import { TestControllerHandler } from './test-controller-handler';
+import { minimatch } from 'minimatch';
+import { MutationServer } from '../mutation-server/mutation-server';
 
 export class FileChangeHandler {
     #changedFilePath$Subject = new Subject<string>();
     changedFilePath$ = this.#changedFilePath$Subject.asObservable();
 
-
     #deletedFilePath$Subject = new Subject<string>();
     deletedFilePath$ = this.#deletedFilePath$Subject.asObservable();
 
-    constructor(platform: Platform, testControllerHandler: TestControllerHandler) {
+    constructor(mutationServer: MutationServer, testControllerHandler: TestControllerHandler) {
         this.createFileWatchers();
 
         // Changes are buffered to bundle multiple changes into one run
-        // and debounced to prevent multiple runs for the same path.
-
+        // and debounced to prevent running while the user is still typing
         const changedFileBufferedPath$ = this.changedFilePath$
             .pipe(buffer(this.changedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
 
         changedFileBufferedPath$.subscribe(paths => {
-            platform.instrumentationRun(paths).then((result) =>
+            // Pass only unique paths to the mutation server, otherwise Stryker will not handle duplicates correctly
+            const uniquePaths = paths.filter((value, index, self) => self.indexOf(value) === index);
+
+            // Filter out paths that are covered by other paths, otherwise Stryker will not handle them correctly
+            const filteredPaths = this.filterCoveredPatterns(uniquePaths);
+
+            // Instrument files to detect changes
+            mutationServer.instrument(filteredPaths).then((result) =>
+                // Update the test explorer with the new test items
                 testControllerHandler.updateTestExplorerFromInstrumentRun(result)
             );
         });
@@ -33,12 +40,11 @@ export class FileChangeHandler {
         deletedFileBufferedPath$.subscribe(paths => {
             testControllerHandler.deleteFromTestExplorer(paths);
         });
-
     }
 
     async createFileWatchers() {
         if (!vscode.workspace.workspaceFolders) {
-            return; // handle the case of no open folders
+            throw new Error('No workspace folders found');
         }
 
         vscode.workspace.workspaceFolders.map(async workspaceFolder => {
@@ -46,29 +52,49 @@ export class FileChangeHandler {
 
             const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
-            // called on file/folder creation and file/folder path changes
+            // Called on file/folder creation and file/folder path changes
             watcher.onDidCreate(uri => {
+                // If the uri is a folder, match everything in the folder
                 const uriIsFolder = !uri.fsPath.includes('.');
                 if (uriIsFolder) {
-                    // match all files in the folder
                     uri = vscode.Uri.parse(uri.fsPath + '/**/*');
                 }
 
                 this.#changedFilePath$Subject.next(uri.fsPath);
             });
 
-            // called on file content change
-            watcher.onDidChange(uri => {
-                                this.#changedFilePath$Subject.next(uri.fsPath);
-            });
+            // Called on file content change
+            watcher.onDidChange(uri => this.#changedFilePath$Subject.next(uri.fsPath));
 
-            // called on file/folder deletion and file/folder path changes
+            // Called on file/folder deletion and file/folder path changes
             watcher.onDidDelete(uri => {
                 const relativePath = uri.fsPath.replace(config.app.currentWorkingDirectory + '/', '');
 
                 this.#deletedFilePath$Subject.next(relativePath);
             });
         });
+    }
+
+    private filterCoveredPatterns(globPatterns: string[]): string[] {
+        const filteredGlobPatterns: string[] = [];
+    
+        for (const globPattern of globPatterns) {
+            let isCovered = false;
+    
+            // Check if the glob pattern is covered by another glob pattern
+            for (const pattern of globPatterns.filter(p => p !== globPattern)) {
+                if (minimatch(globPattern, pattern)) {
+                    isCovered = true;
+                    break;
+                }
+            }
+    
+            if (!isCovered) {
+                filteredGlobPatterns.push(globPattern);
+            }
+        }
+    
+        return filteredGlobPatterns;
     }
 }
 

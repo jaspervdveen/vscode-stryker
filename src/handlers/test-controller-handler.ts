@@ -20,7 +20,7 @@ export class TestControllerHandler {
         this.testController.items.replace(testItems);
     }
 
-    private deletePathFromTestExplorer(path: string) {
+    private deletePathFromTestExplorer(path: string): void {
         const directories = path.split('/');
 
         let currentNode = this.testController.items;
@@ -29,6 +29,7 @@ export class TestControllerHandler {
         const fileName = directories[directories.length - 1];
         const parentDirectory = directories[directories.length - 2];
 
+        // Traverse the tree to find the parent directory
         for (const directory of directories) {
             let node = currentNode.get(directory);
 
@@ -41,7 +42,7 @@ export class TestControllerHandler {
             currentNode = node!.children;
         }
 
-        // remove parent directories that have no children
+        // Remove parent directories that have no children
         while (parent && parent.children.size === 0) {
             const parentParent: vscode.TestItem | undefined = parent.parent;
             parentParent?.children.delete(parent.id);
@@ -50,7 +51,7 @@ export class TestControllerHandler {
     }
 
 
-    public deleteFromTestExplorer(paths: string[]) {
+    public deleteFromTestExplorer(paths: string[]): void {
         for (const path of paths) { 
             this.deletePathFromTestExplorer(path);
         }
@@ -61,6 +62,7 @@ export class TestControllerHandler {
 
         let currentNode = this.testController.items;
 
+        // Create folder/file test item structure if it doesn't exist
         directories.forEach(directory => {
             let childNode = currentNode.get(directory);
 
@@ -72,6 +74,7 @@ export class TestControllerHandler {
             currentNode = childNode.children;
         });
 
+        // Add mutants to the file test item's children
         result.mutants.forEach(mutant => {
             const testItem = testItemUtils.createTestItem(
                 mutant,
@@ -92,11 +95,7 @@ export class TestControllerHandler {
         Object.keys(result.files).forEach(path => {
             const mutants = result.files[path].mutants;
 
-            const directories = path.split('/');
-            const fileName = directories[directories.length - 1];
-
-            // find test item of file
-            const testItem = testItemUtils.findTestItemById(this.testController.items, fileName);
+            const testItem = testItemUtils.findFileTestItemByPath(this.testController.items, path);
 
             if (!testItem) {
                 this.addFileToTestExplorer(path, result.files[path]);
@@ -104,15 +103,15 @@ export class TestControllerHandler {
             else {
                 const currentMutantTestItems = testItem.children;
 
-                // remove mutants that are not in the new result
-                for (const [id, testItem] of currentMutantTestItems) {
+                // Remove mutants in Test Explorer that are not existent in the new instrument result
+                for (const [id] of currentMutantTestItems) {
                     const mutant = mutants.find(mutant => this.getMutantId(mutant) === id);
                     if (!mutant) {
                         currentMutantTestItems.delete(id);
                     }
                 }
 
-                // add new mutants
+                // Add new mutants that are not found in the Test Explorer
                 mutants.forEach(mutant => {
                     const mutantId = this.getMutantId(mutant);
                     if (!currentMutantTestItems.get(mutantId)) {
