@@ -16,8 +16,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "stryker-mutator.helloWorld",
-        "title": "Hello World"
+        "command": "stryker-mutator.instrument",
+        "title": "Stryker: Instrument workspace"
       }
     ]
   },
