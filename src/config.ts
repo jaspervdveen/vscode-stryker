@@ -21,7 +21,7 @@ export interface Config {
     };
 }
 
-export const config: Config = {
+export const Config: Config = {
     app: {
         name: 'Stryker Mutator',
         currentWorkingDirectory: vscode.workspace.workspaceFolders![0].uri.fsPath,

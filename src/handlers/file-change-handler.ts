@@ -1,6 +1,6 @@
 import { Subject, buffer, debounceTime } from 'rxjs';
 import * as vscode from 'vscode';
-import { config } from '../config';
+import { Config } from '../config';
 import { TestControllerHandler } from './test-controller-handler';
 import { minimatch } from 'minimatch';
 import { MutationServer } from '../mutation-server/mutation-server';
@@ -18,7 +18,7 @@ export class FileChangeHandler {
         // Changes are buffered to bundle multiple changes into one run
         // and debounced to prevent running while the user is still typing
         const changedFileBufferedPath$ = this.changedFilePath$
-            .pipe(buffer(this.changedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
+            .pipe(buffer(this.changedFilePath$.pipe(debounceTime(Config.app.fileChangeDebounceTimeMs))));
 
         changedFileBufferedPath$.subscribe(paths => {
             // Pass only unique paths to the mutation server, otherwise Stryker will not handle duplicates correctly
@@ -35,7 +35,7 @@ export class FileChangeHandler {
         });
 
         const deletedFileBufferedPath$ = this.deletedFilePath$
-            .pipe(buffer(this.deletedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
+            .pipe(buffer(this.deletedFilePath$.pipe(debounceTime(Config.app.fileChangeDebounceTimeMs))));
 
         deletedFileBufferedPath$.subscribe(paths => {
             testControllerHandler.deleteFromTestExplorer(paths);
@@ -68,7 +68,7 @@ export class FileChangeHandler {
 
             // Called on file/folder deletion and file/folder path changes
             watcher.onDidDelete(uri => {
-                const relativePath = uri.fsPath.replace(config.app.currentWorkingDirectory + '/', '');
+                const relativePath = uri.fsPath.replace(Config.app.currentWorkingDirectory + '/', '');
 
                 this.#deletedFilePath$Subject.next(relativePath);
             });

@@ -1,5 +1,5 @@
 import { ProgressLocation, window } from "vscode";
-import { config } from "../config.js";
+import { Config } from "../config.js";
 import { reporterUtils } from "../utils/reporter-utils.js";
 import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from "json-rpc-2.0";
 import { WebSocket, Data } from 'ws';
@@ -14,7 +14,7 @@ export class MutationServer {
     
     constructor() {
         // Start the mutation server
-        this.process = spawn(config.app.mutationServerExecutable, { cwd: config.app.currentWorkingDirectory });
+        this.process = spawn(Config.app.mutationServerExecutable, { cwd: Config.app.currentWorkingDirectory });
     }
 
     public async connect() {
@@ -30,7 +30,7 @@ export class MutationServer {
     public async instrument(globPatterns?: string[]): Promise<MutationTestResult> {
         return await window.withProgress({
             location: ProgressLocation.Window,
-            title: config.messages.instrumentationRunning,
+            title: Config.messages.instrumentationRunning,
         }, async () => {
             try {
                 if (!this.rpcClient) {
@@ -41,14 +41,14 @@ export class MutationServer {
 
                 return result;
             } catch (error) {
-                reporterUtils.errorNotification(config.errors.instrumentationFailed);
+                reporterUtils.errorNotification(Config.errors.instrumentationFailed);
                 throw error;
             }
         });
     }
 
     private connectViaWebSocket() {
-        this.webSocket = new WebSocket(config.app.mutationServerAddress);
+        this.webSocket = new WebSocket(Config.app.mutationServerAddress);
 
         this.webSocket.on('message', (data: Data) => {
             let response: JSONRPCResponse | undefined;
