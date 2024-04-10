@@ -56,6 +56,27 @@ export class MutationServer {
         });
     }
 
+    public async mutate(globPatterns?: string[]): Promise<MutationTestResult> {
+        return await window.withProgress({
+            location: ProgressLocation.Window,
+            title: Config.messages.mutationTestingRunning,
+            cancellable: true
+        }, async () => {
+            try {
+                if (!this.rpcClient) {
+                    throw new Error('Setup method not called.');
+                }
+
+                const result = await this.rpcClient.request('mutate', { globPatterns: globPatterns });
+
+                return result;
+            } catch (error) {
+                reporterUtils.errorNotification(Config.errors.mutationTestingFailed);
+                throw error;
+            }
+        });
+    }
+
     private connectViaWebSocket() {
         const config = vscode.workspace.getConfiguration(Config.app.name);
         const mutationServerAddress: string | undefined = config.get('mutationServerAddress');
