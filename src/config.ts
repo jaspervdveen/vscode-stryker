@@ -3,10 +3,9 @@ import * as vscode from 'vscode';
 export interface Config {
     app: {
         name: string;
+        displayName: string;
         currentWorkingDirectory: string;
         fileChangeDebounceTimeMs: number;
-        mutationServerExecutablePath: string;
-        mutationServerAddress: string;
     };
     messages: {
         instrumentationRunning: string;
@@ -18,16 +17,16 @@ export interface Config {
         instrumentationFailed: string;
         reportReadingFailed: string;
         mutationTestingFailed: string;
+        mutationServerExecutablePathNotSet: string;
     };
 }
 
 export const Config: Config = {
     app: {
-        name: 'Stryker Mutator',
+        name: 'stryker-mutator',
+        displayName: 'Stryker Mutator',
         currentWorkingDirectory: vscode.workspace.workspaceFolders![0].uri.fsPath,
         fileChangeDebounceTimeMs: 250,
-        mutationServerExecutablePath: '/home/jasper/repos/stryker-js/packages/core/bin/stryker-server.js',
-        mutationServerAddress: 'ws://localhost:8080'
     },
     messages: {
         instrumentationRunning: 'Running instrumentation',
@@ -38,7 +37,8 @@ export const Config: Config = {
     errors: {
         instrumentationFailed: 'Error running instrumentation',
         reportReadingFailed: 'Error reading mutation report',
-        mutationTestingFailed: 'Error running mutation testing'
+        mutationTestingFailed: 'Error running mutation testing',
+        mutationServerExecutablePathNotSet: 'Mutation server executable path not set.',
     }
 };
 

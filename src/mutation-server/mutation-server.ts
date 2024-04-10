@@ -6,6 +6,7 @@ import { WebSocket, Data } from 'ws';
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { MutationTestResult } from "mutation-testing-report-schema";
 import { MutationServerMethods } from "./mutation-server-methods.js";
+import * as vscode from 'vscode';
 
 export class MutationServer {
     private process: ChildProcessWithoutNullStreams;
@@ -14,7 +15,15 @@ export class MutationServer {
     
     constructor() {
         // Start the mutation server
-        this.process = spawn(Config.app.mutationServerExecutablePath, { cwd: Config.app.currentWorkingDirectory });
+        const config = vscode.workspace.getConfiguration(Config.app.name);
+
+        const mutationServerExecutablePath: string | undefined = config.get('mutationServerExecutablePath');
+
+        if (!mutationServerExecutablePath) {
+            throw new Error(Config.errors.mutationServerExecutablePathNotSet);
+        };
+
+        this.process = spawn(mutationServerExecutablePath, { cwd: Config.app.currentWorkingDirectory });
     }
 
     public async connect() {
@@ -48,7 +57,14 @@ export class MutationServer {
     }
 
     private connectViaWebSocket() {
-        this.webSocket = new WebSocket(Config.app.mutationServerAddress);
+        const config = vscode.workspace.getConfiguration(Config.app.name);
+        const mutationServerAddress: string | undefined = config.get('mutationServerAddress');
+
+        if (!mutationServerAddress) {
+            throw new Error('Mutation server address not set.');
+        }
+
+        this.webSocket = new WebSocket(mutationServerAddress);
 
         this.webSocket.on('message', (data: Data) => {
             let response: JSONRPCResponse | undefined;

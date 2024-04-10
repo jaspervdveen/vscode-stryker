@@ -19,6 +19,23 @@
         "command": "stryker-mutator.instrument",
         "title": "Stryker: Instrument workspace"
       }
+    ],
+    "configuration": [
+      {
+        "title": "Stryker Mutator",
+        "properties": {
+          "stryker-mutator.mutationServerExecutablePath": {
+            "type": "string",
+            "default": "./node_modules/.bin/stryker-mutator/stryker-server",
+            "description": "The path to the mutation server executable."
+          },
+          "stryker-mutator.mutationServerAddress": {
+            "type": "string",
+            "default": "ws://localhost:8080",
+            "description": "The address of the mutation WebSocket server."
+          }
+        }
+      }
     ]
   },
   "scripts": {

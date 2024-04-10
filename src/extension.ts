@@ -8,7 +8,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const mutationServer = new MutationServer();
 	await mutationServer.connect();
 
-	const controller = vscode.tests.createTestController(Config.app.name, Config.app.name);
+	const controller = vscode.tests.createTestController(Config.app.name, Config.app.displayName);
 	const testControllerHandler = new TestControllerHandler(controller);
 	
 	new FileChangeHandler(mutationServer, testControllerHandler);
