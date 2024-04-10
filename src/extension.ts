@@ -5,6 +5,11 @@ import { FileChangeHandler } from './handlers/file-change-handler.js';
 import { MutationServer } from './mutation-server/mutation-server.js';
 
 export async function activate(context: vscode.ExtensionContext) {
+	if (!vscode.workspace.workspaceFolders) {
+		// No workspace is opened, so no need to start Stryker.
+		return;
+	}
+
 	const mutationServer = new MutationServer();
 	await mutationServer.connect();
 

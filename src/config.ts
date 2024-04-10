@@ -4,7 +4,6 @@ export interface Config {
     app: {
         name: string;
         displayName: string;
-        currentWorkingDirectory: string;
         fileChangeDebounceTimeMs: number;
     };
     messages: {
@@ -25,7 +24,6 @@ export const Config: Config = {
     app: {
         name: 'stryker-mutator',
         displayName: 'Stryker Mutator',
-        currentWorkingDirectory: vscode.workspace.workspaceFolders![0].uri.fsPath,
         fileChangeDebounceTimeMs: 250,
     },
     messages: {

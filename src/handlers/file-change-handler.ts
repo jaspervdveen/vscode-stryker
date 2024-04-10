@@ -68,7 +68,7 @@ export class FileChangeHandler {
 
             // Called on file/folder deletion and file/folder path changes
             watcher.onDidDelete(uri => {
-                const relativePath = uri.fsPath.replace(Config.app.currentWorkingDirectory + '/', '');
+                const relativePath = uri.fsPath.replace(workspaceFolder.uri.fsPath + '/', '');
 
                 this.#deletedFilePath$Subject.next(relativePath);
             });

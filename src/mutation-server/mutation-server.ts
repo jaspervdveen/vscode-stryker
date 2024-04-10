@@ -22,8 +22,8 @@ export class MutationServer {
         if (!mutationServerExecutablePath) {
             throw new Error(Config.errors.mutationServerExecutablePathNotSet);
         };
-
-        this.process = spawn(mutationServerExecutablePath, { cwd: Config.app.currentWorkingDirectory });
+        
+        this.process = spawn(mutationServerExecutablePath, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
     }
 
     public async connect() {
