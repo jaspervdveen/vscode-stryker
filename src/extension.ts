@@ -13,9 +13,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	
 	new FileChangeHandler(mutationServer, testControllerHandler);
 	
-	mutationServer.instrument().then((result) => {
-		testControllerHandler.replaceTestExplorerContent(result);
-	});
+	const instrumentationResult = await mutationServer.instrument();
+	testControllerHandler.replaceTestExplorerContent(instrumentationResult);
 
 	vscode.commands.registerCommand('stryker-mutator.instrument', async () => {
 		const result = await mutationServer.instrument();
