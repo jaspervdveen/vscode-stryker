@@ -5,7 +5,7 @@ export interface Config {
         name: string;
         currentWorkingDirectory: string;
         fileChangeDebounceTimeMs: number;
-        mutationServerExecutable: string;
+        mutationServerExecutablePath: string;
         mutationServerAddress: string;
     };
     messages: {
@@ -26,7 +26,7 @@ export const Config: Config = {
         name: 'Stryker Mutator',
         currentWorkingDirectory: vscode.workspace.workspaceFolders![0].uri.fsPath,
         fileChangeDebounceTimeMs: 250,
-        mutationServerExecutable: '/home/jasper/repos/stryker-js/packages/core/bin/stryker-server.js',
+        mutationServerExecutablePath: '/home/jasper/repos/stryker-js/packages/core/bin/stryker-server.js',
         mutationServerAddress: 'ws://localhost:8080'
     },
     messages: {

@@ -14,7 +14,7 @@ export class MutationServer {
     
     constructor() {
         // Start the mutation server
-        this.process = spawn(Config.app.mutationServerExecutable, { cwd: Config.app.currentWorkingDirectory });
+        this.process = spawn(Config.app.mutationServerExecutablePath, { cwd: Config.app.currentWorkingDirectory });
     }
 
     public async connect() {
