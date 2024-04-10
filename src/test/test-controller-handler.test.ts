@@ -3,6 +3,7 @@ import { TestControllerHandler } from '../handlers/test-controller-handler';
 import * as vscode from 'vscode';
 import { MutantResult, MutationTestResult } from 'mutation-testing-report-schema';
 import { testItemUtils } from '../utils/test-item-utils';
+import { FileTreeNode } from '../api/test-item-node';
 
 suite('test-controller-handler', () => {
 
@@ -98,9 +99,7 @@ suite('test-controller-handler', () => {
   });
 
   test('should create test item tree node', () => {
-    const testControllerHandler = new TestControllerHandler(testController);
-
-    const testItemNodes = testItemUtils.createTestItemNodeTree(mutationReport.files);
+    const testItemNodes = testItemUtils.createNodeTree(mutationReport.files);
 
     assert.strictEqual(testItemNodes.length, 1);
     assert.strictEqual(testItemNodes[0].name, "src");
@@ -108,14 +107,12 @@ suite('test-controller-handler', () => {
     assert.strictEqual(testItemNodes[0].children[0].name, "services");
     assert.strictEqual(testItemNodes[0].children[0].children.length, 2);
     assert.strictEqual(testItemNodes[0].children[0].children[0].name, "myService.js");
-    assert.strictEqual(testItemNodes[0].children[0].children[0].mutants.length, 2);
-    assert.strictEqual(testItemNodes[0].children[0].children[0].fullPath, "src/services/myService.js");
-    assert.strictEqual(testItemNodes[0].children[0].children[0].mutants[0].id, "1");
+    assert.strictEqual((testItemNodes[0].children[0].children[0] as FileTreeNode).mutants.length, 2);
+    assert.strictEqual((testItemNodes[0].children[0].children[0] as FileTreeNode).path, "src/services/myService.js");
+    assert.strictEqual((testItemNodes[0].children[0].children[0] as FileTreeNode).mutants[0].id, "1");
     assert.strictEqual(testItemNodes[0].children[0].children[1].name, "mySecondService.js");
-    assert.strictEqual(testItemNodes[0].children[0].children[1].mutants.length, 1);
+    assert.strictEqual((testItemNodes[0].children[0].children[1] as FileTreeNode).mutants.length, 1);
     assert.strictEqual(testItemNodes[0].children[1].name, "util.js");
-    assert.strictEqual(testItemNodes[0].children[1].mutants.length, 1);
-    assert.strictEqual(testItemNodes[0].mutants.length, 0);
-    assert.strictEqual(testItemNodes[0].fullPath, undefined);
+    assert.strictEqual((testItemNodes[0].children[1] as FileTreeNode).mutants.length, 1);
   });
 });

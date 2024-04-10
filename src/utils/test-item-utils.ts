@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { TestItemNode } from '../api/test-item-node';
+import { DefaultTreeNode, FileTreeNode, TreeNode } from '../api/test-item-node';
 import { FileResultDictionary, MutantResult } from 'mutation-testing-report-schema';
 
 export const testItemUtils = {
@@ -26,19 +26,25 @@ export const testItemUtils = {
         }
     },
 
-    createTestItems(testItemNodes: TestItemNode[], testController: vscode.TestController): vscode.TestItem[] {
+    createTestItems(testItemNodes: TreeNode[], testController: vscode.TestController): vscode.TestItem[] {
         const testItems = testItemNodes.map(node => {
-            const fileUri = node.fullPath ? vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${node.fullPath}`) : undefined;
+            let item: vscode.TestItem;
 
-            const item = testController.createTestItem(node.name, node.name, fileUri);
-            item.canResolveChildren = true;
-            if (node.children.length > 0) {
-                item.children.replace(this.createTestItems(node.children, testController));
-            } else {
-                node.mutants.forEach(mutant => {
-                    const testItem = this.createTestItem(mutant, fileUri!, testController);
+            if ((node as FileTreeNode).path) {
+                let fileTreeNode = node as FileTreeNode;
+
+                const fileUri = vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${fileTreeNode.path}`);
+
+                item = testController.createTestItem(node.name, node.name, fileUri);
+
+                fileTreeNode.mutants.forEach(mutant => {
+                    const testItem = this.createTestItem(mutant, fileUri, testController);
                     item.children.add(testItem);
                 });
+            } else {
+                item = testController.createTestItem(node.name, node.name);
+
+                item.children.replace(this.createTestItems(node.children, testController));
             }
 
             return item;
@@ -59,9 +65,9 @@ export const testItemUtils = {
         return testItem;
     },
 
-    createTestItemNodeTree(files: FileResultDictionary): TestItemNode[] {
-        let result: TestItemNode[] = [];
-        let level: { result: TestItemNode[] } = { result };
+    createNodeTree(files: FileResultDictionary): TreeNode[] {
+        let result: TreeNode[] = [];
+        let level: { result: TreeNode[] } = { result };
 
         Object.keys(files).forEach(path => {
             const mutants = files[path].mutants;
@@ -69,21 +75,32 @@ export const testItemUtils = {
             const directories = path.split('/');
             const fileName = directories[directories.length - 1];
 
-            directories.reduce((curLevel: any, dirName: string) => {
-                if (!curLevel[dirName]) {
-                    curLevel[dirName] = { result: [] };
+            directories.reduce((currentLevel: any, dirName: string) => {
+                if (!currentLevel[dirName]) {
+                    currentLevel[dirName] = { result: [] };
 
                     const isFile = dirName === fileName;
 
-                    curLevel.result.push({
-                        name: dirName,
-                        children: curLevel[dirName].result,
-                        mutants: isFile ? mutants : [],
-                        fullPath: isFile ? path : undefined,
-                    });
+                    let testItem: TreeNode;
+
+                    if (isFile) {
+                        testItem = {
+                            name: dirName,
+                            children: [],
+                            mutants,
+                            path,
+                        } as FileTreeNode;
+                    } else {
+                        testItem = {
+                            name: dirName,
+                            children: currentLevel[dirName].result,
+                        } as DefaultTreeNode;
+                    }
+
+                    currentLevel.result.push(testItem);
                 }
 
-                return curLevel[dirName];
+                return currentLevel[dirName];
             }, level);
         });
 

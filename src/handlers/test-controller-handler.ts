@@ -14,7 +14,7 @@ export class TestControllerHandler {
     }
 
     public replaceTestExplorerContent(mutationReport: MutationTestResult) {
-        const testItemNodes = testItemUtils.createTestItemNodeTree(mutationReport.files);
+        const testItemNodes = testItemUtils.createNodeTree(mutationReport.files);
         const testItems = testItemUtils.createTestItems(testItemNodes, this.testController);
 
         this.testController.items.replace(testItems);
