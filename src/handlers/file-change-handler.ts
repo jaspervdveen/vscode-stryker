@@ -76,25 +76,9 @@ export class FileChangeHandler {
     }
 
     private filterCoveredPatterns(globPatterns: string[]): string[] {
-        const filteredGlobPatterns: string[] = [];
-    
-        for (const globPattern of globPatterns) {
-            let isCovered = false;
-    
-            // Check if the glob pattern is covered by another glob pattern
-            for (const pattern of globPatterns.filter(p => p !== globPattern)) {
-                if (minimatch(globPattern, pattern)) {
-                    isCovered = true;
-                    break;
-                }
-            }
-    
-            if (!isCovered) {
-                filteredGlobPatterns.push(globPattern);
-            }
-        }
-    
-        return filteredGlobPatterns;
+        return globPatterns.filter((globPattern, index) => {
+            return !globPatterns.some((otherGlobPattern, otherIndex) => otherIndex !== index && minimatch(globPattern, otherGlobPattern));
+        });
     }
 }
 
