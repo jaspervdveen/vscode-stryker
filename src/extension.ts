@@ -3,6 +3,7 @@ import { TestControllerHandler } from './handlers/test-controller-handler.js';
 import { Config } from './config.js';
 import { FileChangeHandler } from './handlers/file-change-handler.js';
 import { MutationServer } from './mutation-server/mutation-server.js';
+import { TestRunHandler } from './handlers/test-run-handler.js';
 
 export async function activate(context: vscode.ExtensionContext) {
 	if (!vscode.workspace.workspaceFolders) {
@@ -17,6 +18,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const testControllerHandler = new TestControllerHandler(controller);
 	
 	new FileChangeHandler(mutationServer, testControllerHandler);
+	new TestRunHandler(controller, mutationServer, testControllerHandler);
 	
 	const instrumentationResult = await mutationServer.instrument();
 	testControllerHandler.replaceTestExplorerContent(instrumentationResult);

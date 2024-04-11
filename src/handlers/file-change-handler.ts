@@ -2,8 +2,8 @@ import { Subject, buffer, debounceTime } from 'rxjs';
 import * as vscode from 'vscode';
 import { Config } from '../config';
 import { TestControllerHandler } from './test-controller-handler';
-import { minimatch } from 'minimatch';
 import { MutationServer } from '../mutation-server/mutation-server';
+import { pathUtils } from '../utils/path-utils';
 
 export class FileChangeHandler {
     #changedFilePath$Subject = new Subject<string>();
@@ -21,11 +21,13 @@ export class FileChangeHandler {
             .pipe(buffer(this.changedFilePath$.pipe(debounceTime(Config.app.fileChangeDebounceTimeMs))));
 
         changedFileBufferedPath$.subscribe(paths => {
+            testControllerHandler.invalidateTestResults();
+
             // Pass only unique paths to the mutation server, otherwise Stryker will not handle duplicates correctly
             const uniquePaths = paths.filter((value, index, self) => self.indexOf(value) === index);
 
             // Filter out paths that are covered by other paths, otherwise Stryker will not handle them correctly
-            const filteredPaths = this.filterCoveredPatterns(uniquePaths);
+            const filteredPaths = pathUtils.filterCoveredPatterns(uniquePaths);
 
             // Instrument files to detect changes
             mutationServer.instrument(filteredPaths).then((result) =>
@@ -38,6 +40,8 @@ export class FileChangeHandler {
             .pipe(buffer(this.deletedFilePath$.pipe(debounceTime(Config.app.fileChangeDebounceTimeMs))));
 
         deletedFileBufferedPath$.subscribe(paths => {
+            testControllerHandler.invalidateTestResults();
+
             testControllerHandler.deleteFromTestExplorer(paths);
         });
     }
@@ -75,10 +79,6 @@ export class FileChangeHandler {
         });
     }
 
-    private filterCoveredPatterns(globPatterns: string[]): string[] {
-        return globPatterns.filter((globPattern, index) => {
-            return !globPatterns.some((otherGlobPattern, otherIndex) => otherIndex !== index && minimatch(globPattern, otherGlobPattern));
-        });
-    }
+
 }
 

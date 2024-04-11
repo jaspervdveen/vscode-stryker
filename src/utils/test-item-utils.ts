@@ -58,8 +58,8 @@ export const testItemUtils = {
         const testItem = testController.createTestItem(mutantId, `${mutant.mutatorName} (${mutant.location.start.line}:${mutant.location.start.column})`, fileUri);
 
         testItem.range = new vscode.Range(
-            new vscode.Position(mutant.location.start.line, mutant.location.start.column),
-            new vscode.Position(mutant.location.end.line, mutant.location.end.column)
+            new vscode.Position(mutant.location.start.line - 1, mutant.location.start.column -1 ),
+            new vscode.Position(mutant.location.end.line - 1, mutant.location.end.column - 1)
         );
 
         return testItem;
@@ -106,4 +106,9 @@ export const testItemUtils = {
 
         return result;
     },
+
+    getMutantId(mutant: MutantResult): string {
+        return `${mutant.mutatorName}(${mutant.location.start.line}:${mutant.location.start.column}-${mutant.location.end.line}:${mutant.location.end.column}) (${mutant.replacement})`;
+
+    }
 };

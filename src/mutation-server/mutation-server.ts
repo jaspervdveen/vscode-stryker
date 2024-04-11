@@ -7,6 +7,7 @@ import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { MutationTestResult } from "mutation-testing-report-schema";
 import { MutationServerMethods } from "./mutation-server-methods.js";
 import * as vscode from 'vscode';
+import { MutantResult } from "../api/mutant-result.js";
 
 export class MutationServer {
     private process: ChildProcessWithoutNullStreams;
@@ -24,6 +25,14 @@ export class MutationServer {
         };
         
         this.process = spawn(mutationServerExecutablePath, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
+
+        this.process.stdout.on('data', (data) => {
+            console.log('Mutation Server:', data.toString());
+        });
+
+        this.process.stderr.on('data', (data) => {
+            console.error('Mutation Server:', data.toString());
+        });
     }
 
     public async connect() {
@@ -56,7 +65,7 @@ export class MutationServer {
         });
     }
 
-    public async mutate(globPatterns?: string[]): Promise<MutationTestResult> {
+    public async mutate(globPatterns?: string[]): Promise<MutantResult[]> {
         return await window.withProgress({
             location: ProgressLocation.Window,
             title: Config.messages.mutationTestingRunning,

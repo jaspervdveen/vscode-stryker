@@ -9,6 +9,10 @@ export class TestControllerHandler {
         this.testController = testController;
     }
 
+    public invalidateTestResults() {
+        this.testController.invalidateTestResults();
+    }
+
     private getMutantId(mutant: MutantResult): string {
         return `${mutant.mutatorName}(${mutant.location.start.line}:${mutant.location.start.column}-${mutant.location.end.line}:${mutant.location.end.column}) (${mutant.replacement})`;
     }
@@ -48,6 +52,33 @@ export class TestControllerHandler {
             parentParent?.children.delete(parent.id);
             parent = parentParent;
         }
+    }
+
+    public addMutantToTestExplorer(filePath: string, mutant: MutantResult): vscode.TestItem {
+        const directories = filePath.split('/');
+
+        let currentNode = this.testController.items;
+
+        directories.forEach(directory => {
+            let childNode = currentNode.get(directory);
+
+            if (!childNode) {
+                childNode = this.testController.createTestItem(directory, directory);
+                currentNode.add(childNode);
+            }
+
+            currentNode = childNode.children;
+        });
+
+        const testItem = testItemUtils.createTestItem(
+            mutant,
+            vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${filePath}`),
+            this.testController
+        );
+
+        currentNode.add(testItem);
+
+        return testItem;
     }
 
 
