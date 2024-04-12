@@ -22,8 +22,11 @@ export class MutationServer {
         if (!mutationServerExecutablePath) {
             throw new Error(config.errors.mutationServerExecutablePathNotSet);
         };
+
+        const mutationServerPort = workspaceConfig.get('mutationServerPort') ?? 8080;
+        const args = ['--port', mutationServerPort.toString()];
         
-        this.process = spawn(mutationServerExecutablePath, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
+        this.process = spawn(mutationServerExecutablePath, args, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
     }
 
     public async connect() {
@@ -58,13 +61,13 @@ export class MutationServer {
 
     private connectViaWebSocket() {
         const workspaceConfig = vscode.workspace.getConfiguration(config.app.name);
-        const mutationServerAddress: string | undefined = workspaceConfig.get('mutationServerAddress');
+        const mutationServerPort: number | undefined = workspaceConfig.get('mutationServerPort');
 
-        if (!mutationServerAddress) {
-            throw new Error('Mutation server address not set.');
+        if (!mutationServerPort) {
+            throw new Error(config.errors.mutationServerPortNotSet);
         }
 
-        this.webSocket = new WebSocket(mutationServerAddress);
+        this.webSocket = new WebSocket(`ws://localhost:${mutationServerPort}`);
 
         this.webSocket.on('message', (data: Data) => {
             let response: JSONRPCResponse | undefined;

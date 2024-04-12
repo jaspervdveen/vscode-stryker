@@ -29,10 +29,12 @@
             "default": "./node_modules/.bin/stryker-mutator/stryker-server",
             "description": "The path to the mutation server executable."
           },
-          "stryker-mutator.mutationServerAddress": {
-            "type": "string",
-            "default": "ws://localhost:8080",
-            "description": "The address of the mutation WebSocket server."
+          "stryker-mutator.mutationServerPort": {
+            "type": "number",
+            "default": 8080,
+            "description": "The port of the mutation WebSocket server.",
+            "minimum": 1,
+            "maximum": 65535
           }
         }
       }
