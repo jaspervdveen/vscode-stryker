@@ -15,9 +15,9 @@ export class MutationServer {
     
     constructor() {
         // Start the mutation server
-        const config = vscode.workspace.getConfiguration(config.app.name);
+        const workspaceConfig = vscode.workspace.getConfiguration(config.app.name);
 
-        const mutationServerExecutablePath: string | undefined = config.get('mutationServerExecutablePath');
+        const mutationServerExecutablePath: string | undefined = workspaceConfig.get('mutationServerExecutablePath');
 
         if (!mutationServerExecutablePath) {
             throw new Error(config.errors.mutationServerExecutablePathNotSet);
@@ -57,8 +57,8 @@ export class MutationServer {
     }
 
     private connectViaWebSocket() {
-        const vscodeConfig = vscode.workspace.getConfiguration(config.app.name);
-        const mutationServerAddress: string | undefined = vscodeConfig.get('mutationServerAddress');
+        const workspaceConfig = vscode.workspace.getConfiguration(config.app.name);
+        const mutationServerAddress: string | undefined = workspaceConfig.get('mutationServerAddress');
 
         if (!mutationServerAddress) {
             throw new Error('Mutation server address not set.');
