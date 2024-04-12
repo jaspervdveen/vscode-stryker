@@ -29,6 +29,24 @@ export class MutationServer {
         const args = ['--port', mutationServerPort.toString()];
 
         this.process = spawn(mutationServerExecutablePath, args, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
+
+        if (this.process.pid === undefined) {
+            logger.logError(`[Mutation Server] Failed to start mutation server with executable path: ${mutationServerExecutablePath} `
+                + `and port: ${mutationServerPort}. These properties can be configured in the extension settings, then reload the window.`);
+            throw new Error(config.errors.mutationServerFailed);
+        }
+
+        this.process.on('exit', (code) => {
+            logger.logInfo(`[Mutation Server] Exited with code ${code}`);
+        });
+
+        this.process.stdout.on('data', (data) => {
+            logger.logInfo(`[Mutation Server] ${data.toString()}`);
+        });
+
+        this.process.stderr.on('data', (data) => {
+            logger.logError(`[Mutation Server] ${data.toString()}`);
+        });
     }
 
     public async connect() {
@@ -99,6 +117,7 @@ export class MutationServer {
 
         this.webSocket.on('error', (err) => {
             this.logger.logError(`WebSocket Error: ${err}`);
+            this.logger.errorNotification(config.errors.mutationServerFailed);
         });
     };
 

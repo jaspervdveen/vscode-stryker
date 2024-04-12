@@ -16,6 +16,7 @@ export interface Config {
         mutationTestingFailed: string;
         mutationServerExecutablePathNotSet: string;
         mutationServerPortNotSet: string;
+        mutationServerFailed: string;
     };
 }
 
@@ -32,11 +33,12 @@ export const config: Config = {
         mutationTestingRunning: 'Running mutation testing',
     },
     errors: {
-        instrumentationFailed: 'Error running instrumentation',
-        reportReadingFailed: 'Error reading mutation report',
-        mutationTestingFailed: 'Error running mutation testing',
+        instrumentationFailed: 'Error running instrumentation. Check the output for more information.',
+        reportReadingFailed: 'Error reading mutation report. Check the output for more information.',
+        mutationTestingFailed: 'Error running mutation testing. Check the output for more information.',
         mutationServerExecutablePathNotSet: 'Mutation server executable path not set.',
         mutationServerPortNotSet: 'Mutation server port is not set.',
+        mutationServerFailed: 'Mutation server failed. Check the output for more information.',
     }
 };
 
