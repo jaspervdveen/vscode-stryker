@@ -20,7 +20,7 @@ export class FileChangeHandler {
         const changedFileBufferedPath$ = this.changedFilePath$
             .pipe(buffer(this.changedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
 
-        changedFileBufferedPath$.subscribe(paths => {
+        changedFileBufferedPath$.subscribe(async (paths) => {
             // Pass only unique paths to the mutation server, otherwise Stryker will not handle duplicates correctly
             const uniquePaths = paths.filter((value, index, self) => self.indexOf(value) === index);
 
@@ -28,10 +28,8 @@ export class FileChangeHandler {
             const filteredPaths = this.filterCoveredPatterns(uniquePaths);
 
             // Instrument files to detect changes
-            mutationServer.instrument(filteredPaths).then((result) =>
-                // Update the test explorer with the new test items
-                testControllerHandler.updateTestExplorerFromInstrumentRun(result)
-            );
+            const instrumentResult = await mutationServer.instrument(filteredPaths);
+            testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentResult);
         });
 
         const deletedFileBufferedPath$ = this.deletedFilePath$
