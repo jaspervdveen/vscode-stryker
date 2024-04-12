@@ -7,7 +7,7 @@ export interface DefaultTreeNode {
 
 export interface FileTreeNode extends DefaultTreeNode {
     mutants: MutantResult[];
-    path: string;
+    relativePath: string; // Relative from the workspace root
 }
 
 export type TreeNode = DefaultTreeNode | FileTreeNode;

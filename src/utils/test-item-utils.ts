@@ -30,10 +30,10 @@ export const testItemUtils = {
         const testItems = testItemNodes.map(node => {
             let item: vscode.TestItem;
 
-            if ((node as FileTreeNode).path) {
+            if ((node as FileTreeNode).relativePath) {
                 let fileTreeNode = node as FileTreeNode;
 
-                const fileUri = vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${fileTreeNode.path}`);
+                const fileUri = vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${fileTreeNode.relativePath}`);
 
                 item = testController.createTestItem(node.name, node.name, fileUri);
 
@@ -88,7 +88,7 @@ export const testItemUtils = {
                             name: dirName,
                             children: [],
                             mutants,
-                            path,
+                            relativePath: path,
                         } as FileTreeNode;
                     } else {
                         testItem = {
