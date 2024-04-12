@@ -4,6 +4,7 @@ import { config } from '../config';
 import { TestControllerHandler } from './test-controller-handler';
 import { minimatch } from 'minimatch';
 import { MutationServer } from '../mutation-server/mutation-server';
+import { Logger } from '../utils/logger';
 
 export class FileChangeHandler {
     #changedFilePath$Subject = new Subject<string>();
@@ -12,7 +13,7 @@ export class FileChangeHandler {
     #deletedFilePath$Subject = new Subject<string>();
     deletedFilePath$ = this.#deletedFilePath$Subject.asObservable();
 
-    constructor(mutationServer: MutationServer, testControllerHandler: TestControllerHandler) {
+    constructor(mutationServer: MutationServer, testControllerHandler: TestControllerHandler, private logger: Logger) {
         this.createFileWatchers();
 
         // Changes are buffered to bundle multiple changes into one run
@@ -27,9 +28,15 @@ export class FileChangeHandler {
             // Filter out paths that are covered by other paths, otherwise Stryker will not handle them correctly
             const filteredPaths = this.filterCoveredPatterns(uniquePaths);
 
-            // Instrument files to detect changes
-            const instrumentResult = await mutationServer.instrument(filteredPaths);
-            testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentResult);
+            try {
+                // Instrument files to detect changes
+                const instrumentResult = await mutationServer.instrument(filteredPaths);
+
+                testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentResult);
+            } catch (error: any) {
+                vscode.window.showErrorMessage(config.errors.instrumentationFailed);
+                logger.logError(error.toString());
+            }
         });
 
         const deletedFileBufferedPath$ = this.deletedFilePath$
@@ -42,6 +49,7 @@ export class FileChangeHandler {
 
     async createFileWatchers() {
         if (!vscode.workspace.workspaceFolders) {
+            this.logger.logError('No workspace folders found');
             throw new Error('No workspace folders found');
         }
 

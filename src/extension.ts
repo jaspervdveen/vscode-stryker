@@ -3,6 +3,7 @@ import { TestControllerHandler } from './handlers/test-controller-handler.js';
 import { config } from './config.js';
 import { FileChangeHandler } from './handlers/file-change-handler.js';
 import { MutationServer } from './mutation-server/mutation-server.js';
+import { Logger } from './utils/logger.js';
 
 export async function activate(context: vscode.ExtensionContext) {
 	if (!vscode.workspace.workspaceFolders) {
@@ -10,20 +11,32 @@ export async function activate(context: vscode.ExtensionContext) {
 		return;
 	}
 
-	const mutationServer = new MutationServer();
+	const logger = new Logger();
+
+	const mutationServer = new MutationServer(logger);
 	await mutationServer.connect();
 
 	const controller = vscode.tests.createTestController(config.app.name, config.app.displayName);
 	const testControllerHandler = new TestControllerHandler(controller);
 	
-	new FileChangeHandler(mutationServer, testControllerHandler);
+	new FileChangeHandler(mutationServer, testControllerHandler, logger);
 	
-	const instrumentationResult = await mutationServer.instrument();
-	testControllerHandler.replaceTestExplorerContent(instrumentationResult);
+	try {
+		const instrumentationResult = await mutationServer.instrument();
+		testControllerHandler.replaceTestExplorerContent(instrumentationResult);
+	} catch (error: any) {
+		vscode.window.showErrorMessage(config.errors.instrumentationFailed);
+		logger.logError(error.toString());
+	};
 
 	vscode.commands.registerCommand('stryker-mutator.instrument', async () => {
-		const result = await mutationServer.instrument();
-		testControllerHandler.updateTestExplorerFromInstrumentRun(result);
+		try {
+			const result = await mutationServer.instrument();
+			testControllerHandler.updateTestExplorerFromInstrumentRun(result);
+		} catch (error: any) {
+			vscode.window.showErrorMessage(config.errors.instrumentationFailed);
+			logger.logError(error.toString());
+		}
 	});
 }
 

@@ -1,6 +1,6 @@
 import { ProgressLocation, window } from "vscode";
 import { config } from "../config.js";
-import { reporterUtils } from "../utils/reporter-utils.js";
+import { Logger } from "../utils/logger.js";
 import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from "json-rpc-2.0";
 import { WebSocket, Data } from 'ws';
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
@@ -12,20 +12,21 @@ export class MutationServer {
     private process: ChildProcessWithoutNullStreams;
     private rpcClient: TypedJSONRPCClient<MutationServerMethods> | undefined;
     private webSocket: WebSocket | undefined;
-    
-    constructor() {
+
+    constructor(private logger: Logger) {
         // Start the mutation server
         const workspaceConfig = vscode.workspace.getConfiguration(config.app.name);
 
         const mutationServerExecutablePath: string | undefined = workspaceConfig.get('mutationServerExecutablePath');
 
         if (!mutationServerExecutablePath) {
+            logger.logError(config.errors.mutationServerExecutablePathNotSet);
             throw new Error(config.errors.mutationServerExecutablePathNotSet);
         };
 
         const mutationServerPort = workspaceConfig.get('mutationServerPort') ?? 8080;
         const args = ['--port', mutationServerPort.toString()];
-        
+
         this.process = spawn(mutationServerExecutablePath, args, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
     }
 
@@ -44,18 +45,13 @@ export class MutationServer {
             location: ProgressLocation.Window,
             title: config.messages.instrumentationRunning,
         }, async () => {
-            try {
-                if (!this.rpcClient) {
-                    throw new Error('Setup method not called.');
-                }
-
-                const result = await this.rpcClient.request('instrument', { globPatterns: globPatterns });
-
-                return result;
-            } catch (error) {
-                reporterUtils.errorNotification(config.errors.instrumentationFailed);
-                throw error;
+            if (!this.rpcClient) {
+                throw new Error('Setup method not called.');
             }
+
+            const result = await this.rpcClient.request('instrument', { globPatterns: globPatterns });
+
+            return result;
         });
     }
 
@@ -64,6 +60,7 @@ export class MutationServer {
         const mutationServerPort: number | undefined = workspaceConfig.get('mutationServerPort');
 
         if (!mutationServerPort) {
+            this.logger.logError(config.errors.mutationServerPortNotSet);
             throw new Error(config.errors.mutationServerPortNotSet);
         }
 
@@ -75,7 +72,7 @@ export class MutationServer {
             try {
                 response = JSON.parse(data.toString());
             } catch (error) {
-                console.error('Error parsing JSON: ', data.toString());
+                this.logger.logError(`Error parsing JSON: ${ data.toString()}`);
             }
 
             if (response) {
@@ -84,7 +81,7 @@ export class MutationServer {
         });
 
         this.webSocket.on('error', (err) => {
-            console.error('WebSocket Error:', err);
+            this.logger.logError(`WebSocket Error: ${err}`);
         });
     };
 
@@ -108,5 +105,5 @@ export class MutationServer {
                 }
             });
         });
-    };  
+    };
 }
