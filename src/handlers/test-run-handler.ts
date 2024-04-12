@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Config } from '../config';
+import { config } from '../config';
 import { MutationServer } from '../mutation-server/mutation-server';
 import { TestControllerHandler } from './test-controller-handler';
 import { pathUtils } from '../utils/path-utils';
@@ -16,7 +16,7 @@ export class TestRunHandler {
     }
 
     public async mutationRunHandler(request: vscode.TestRunRequest) {
-        const run = this.testController.createTestRun(request, Config.app.name, true);
+        const run = this.testController.createTestRun(request, config.app.name, true);
 
         const queue: vscode.TestItem[] = request.include ? [...request.include] : [...this.testController.items].map(([_, testItem]) => testItem);
 

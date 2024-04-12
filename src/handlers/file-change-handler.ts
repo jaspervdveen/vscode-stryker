@@ -1,8 +1,9 @@
 import { Subject, buffer, debounceTime } from 'rxjs';
 import * as vscode from 'vscode';
-import { Config } from '../config';
+import { config } from '../config';
 import { TestControllerHandler } from './test-controller-handler';
 import { MutationServer } from '../mutation-server/mutation-server';
+import { Logger } from '../utils/logger';
 import { pathUtils } from '../utils/path-utils';
 
 export class FileChangeHandler {
@@ -12,15 +13,15 @@ export class FileChangeHandler {
     #deletedFilePath$Subject = new Subject<string>();
     deletedFilePath$ = this.#deletedFilePath$Subject.asObservable();
 
-    constructor(mutationServer: MutationServer, testControllerHandler: TestControllerHandler) {
+    constructor(mutationServer: MutationServer, testControllerHandler: TestControllerHandler, private logger: Logger) {
         this.createFileWatchers();
 
         // Changes are buffered to bundle multiple changes into one run
         // and debounced to prevent running while the user is still typing
         const changedFileBufferedPath$ = this.changedFilePath$
-            .pipe(buffer(this.changedFilePath$.pipe(debounceTime(Config.app.fileChangeDebounceTimeMs))));
+            .pipe(buffer(this.changedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
 
-        changedFileBufferedPath$.subscribe(paths => {
+        changedFileBufferedPath$.subscribe(async (paths) => {
             testControllerHandler.invalidateTestResults();
 
             // Pass only unique paths to the mutation server, otherwise Stryker will not handle duplicates correctly
@@ -29,15 +30,19 @@ export class FileChangeHandler {
             // Filter out paths that are covered by other paths, otherwise Stryker will not handle them correctly
             const filteredPaths = pathUtils.filterCoveredPatterns(uniquePaths);
 
-            // Instrument files to detect changes
-            mutationServer.instrument(filteredPaths).then((result) =>
-                // Update the test explorer with the new test items
-                testControllerHandler.updateTestExplorerFromInstrumentRun(result)
-            );
+            try {
+                // Instrument files to detect changes
+                const instrumentResult = await mutationServer.instrument(filteredPaths);
+
+                testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentResult);
+            } catch (error: any) {
+                vscode.window.showErrorMessage(config.errors.instrumentationFailed);
+                logger.logError(error.toString());
+            }
         });
 
         const deletedFileBufferedPath$ = this.deletedFilePath$
-            .pipe(buffer(this.deletedFilePath$.pipe(debounceTime(Config.app.fileChangeDebounceTimeMs))));
+            .pipe(buffer(this.deletedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
 
         deletedFileBufferedPath$.subscribe(paths => {
             testControllerHandler.invalidateTestResults();
@@ -48,6 +53,7 @@ export class FileChangeHandler {
 
     async createFileWatchers() {
         if (!vscode.workspace.workspaceFolders) {
+            this.logger.logError('No workspace folders found');
             throw new Error('No workspace folders found');
         }
 

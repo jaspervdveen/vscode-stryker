@@ -108,7 +108,7 @@ suite('test-controller-handler', () => {
     assert.strictEqual(testItemNodes[0].children[0].children.length, 2);
     assert.strictEqual(testItemNodes[0].children[0].children[0].name, "myService.js");
     assert.strictEqual((testItemNodes[0].children[0].children[0] as FileTreeNode).mutants.length, 2);
-    assert.strictEqual((testItemNodes[0].children[0].children[0] as FileTreeNode).path, "src/services/myService.js");
+    assert.strictEqual((testItemNodes[0].children[0].children[0] as FileTreeNode).relativePath, "src/services/myService.js");
     assert.strictEqual((testItemNodes[0].children[0].children[0] as FileTreeNode).mutants[0].id, "1");
     assert.strictEqual(testItemNodes[0].children[0].children[1].name, "mySecondService.js");
     assert.strictEqual((testItemNodes[0].children[0].children[1] as FileTreeNode).mutants.length, 1);

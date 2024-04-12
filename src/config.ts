@@ -17,10 +17,11 @@ export interface Config {
         reportReadingFailed: string;
         mutationTestingFailed: string;
         mutationServerExecutablePathNotSet: string;
+        mutationServerPortNotSet: string;
     };
 }
 
-export const Config: Config = {
+export const config: Config = {
     app: {
         name: 'stryker-mutator',
         displayName: 'Stryker Mutator',
@@ -37,6 +38,7 @@ export const Config: Config = {
         reportReadingFailed: 'Error reading mutation report',
         mutationTestingFailed: 'Error running mutation testing',
         mutationServerExecutablePathNotSet: 'Mutation server executable path not set.',
+        mutationServerPortNotSet: 'Mutation server port is not set.',
     }
 };
 

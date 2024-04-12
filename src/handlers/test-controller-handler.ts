@@ -27,7 +27,7 @@ export class TestControllerHandler {
     private deletePathFromTestExplorer(path: string): void {
         const directories = path.split('/');
 
-        let currentNode = this.testController.items;
+        let currentNodes = this.testController.items;
         let parent: vscode.TestItem | undefined;
 
         const fileName = directories[directories.length - 1];
@@ -35,7 +35,7 @@ export class TestControllerHandler {
 
         // Traverse the tree to find the parent directory
         for (const directory of directories) {
-            let node = currentNode.get(directory);
+            let node = currentNodes.get(directory);
 
             if (directory === parentDirectory) {
                 parent = node;
@@ -43,7 +43,7 @@ export class TestControllerHandler {
                 break;
             }
 
-            currentNode = node!.children;
+            currentNodes = node!.children;
         }
 
         // Remove parent directories that have no children
@@ -91,18 +91,18 @@ export class TestControllerHandler {
     private addFileToTestExplorer(path: string, result: FileResult): void {
         const directories = path.split('/');
 
-        let currentNode = this.testController.items;
+        let currentNodes = this.testController.items;
 
         // Create folder/file test item structure if it doesn't exist
         directories.forEach(directory => {
-            let childNode = currentNode.get(directory);
+            let childNode = currentNodes.get(directory);
 
             if (!childNode) {
                 childNode = this.testController.createTestItem(directory, directory);
-                currentNode.add(childNode);
+                currentNodes.add(childNode);
             }
 
-            currentNode = childNode.children;
+            currentNodes = childNode.children;
         });
 
         // Add mutants to the file test item's children
@@ -112,7 +112,7 @@ export class TestControllerHandler {
                 vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${path}`),
                 this.testController
             );
-            currentNode.add(testItem);
+            currentNodes.add(testItem);
         });
     }
 
