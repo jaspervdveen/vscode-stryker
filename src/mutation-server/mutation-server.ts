@@ -57,8 +57,8 @@ export class MutationServer {
     }
 
     private connectViaWebSocket() {
-        const config = vscode.workspace.getConfiguration(config.app.name);
-        const mutationServerAddress: string | undefined = config.get('mutationServerAddress');
+        const vscodeConfig = vscode.workspace.getConfiguration(config.app.name);
+        const mutationServerAddress: string | undefined = vscodeConfig.get('mutationServerAddress');
 
         if (!mutationServerAddress) {
             throw new Error('Mutation server address not set.');
