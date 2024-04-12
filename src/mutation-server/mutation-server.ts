@@ -1,5 +1,5 @@
 import { ProgressLocation, window } from "vscode";
-import { Config } from "../config.js";
+import { config } from "../config.js";
 import { reporterUtils } from "../utils/reporter-utils.js";
 import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from "json-rpc-2.0";
 import { WebSocket, Data } from 'ws';
@@ -15,12 +15,12 @@ export class MutationServer {
     
     constructor() {
         // Start the mutation server
-        const config = vscode.workspace.getConfiguration(Config.app.name);
+        const config = vscode.workspace.getConfiguration(config.app.name);
 
         const mutationServerExecutablePath: string | undefined = config.get('mutationServerExecutablePath');
 
         if (!mutationServerExecutablePath) {
-            throw new Error(Config.errors.mutationServerExecutablePathNotSet);
+            throw new Error(config.errors.mutationServerExecutablePathNotSet);
         };
         
         this.process = spawn(mutationServerExecutablePath, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
@@ -39,7 +39,7 @@ export class MutationServer {
     public async instrument(globPatterns?: string[]): Promise<MutationTestResult> {
         return await window.withProgress({
             location: ProgressLocation.Window,
-            title: Config.messages.instrumentationRunning,
+            title: config.messages.instrumentationRunning,
         }, async () => {
             try {
                 if (!this.rpcClient) {
@@ -50,14 +50,14 @@ export class MutationServer {
 
                 return result;
             } catch (error) {
-                reporterUtils.errorNotification(Config.errors.instrumentationFailed);
+                reporterUtils.errorNotification(config.errors.instrumentationFailed);
                 throw error;
             }
         });
     }
 
     private connectViaWebSocket() {
-        const config = vscode.workspace.getConfiguration(Config.app.name);
+        const config = vscode.workspace.getConfiguration(config.app.name);
         const mutationServerAddress: string | undefined = config.get('mutationServerAddress');
 
         if (!mutationServerAddress) {

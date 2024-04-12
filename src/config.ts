@@ -20,7 +20,7 @@ export interface Config {
     };
 }
 
-export const Config: Config = {
+export const config: Config = {
     app: {
         name: 'stryker-mutator',
         displayName: 'Stryker Mutator',

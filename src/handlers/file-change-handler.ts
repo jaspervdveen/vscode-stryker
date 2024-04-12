@@ -1,6 +1,6 @@
 import { Subject, buffer, debounceTime } from 'rxjs';
 import * as vscode from 'vscode';
-import { Config } from '../config';
+import { config } from '../config';
 import { TestControllerHandler } from './test-controller-handler';
 import { minimatch } from 'minimatch';
 import { MutationServer } from '../mutation-server/mutation-server';
@@ -18,7 +18,7 @@ export class FileChangeHandler {
         // Changes are buffered to bundle multiple changes into one run
         // and debounced to prevent running while the user is still typing
         const changedFileBufferedPath$ = this.changedFilePath$
-            .pipe(buffer(this.changedFilePath$.pipe(debounceTime(Config.app.fileChangeDebounceTimeMs))));
+            .pipe(buffer(this.changedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
 
         changedFileBufferedPath$.subscribe(paths => {
             // Pass only unique paths to the mutation server, otherwise Stryker will not handle duplicates correctly
@@ -35,7 +35,7 @@ export class FileChangeHandler {
         });
 
         const deletedFileBufferedPath$ = this.deletedFilePath$
-            .pipe(buffer(this.deletedFilePath$.pipe(debounceTime(Config.app.fileChangeDebounceTimeMs))));
+            .pipe(buffer(this.deletedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
 
         deletedFileBufferedPath$.subscribe(paths => {
             testControllerHandler.deleteFromTestExplorer(paths);
