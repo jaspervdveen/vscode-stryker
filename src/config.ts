@@ -1,5 +1,3 @@
-import * as vscode from 'vscode';
-
 export interface Config {
     app: {
         name: string;

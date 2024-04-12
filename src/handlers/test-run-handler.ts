@@ -26,7 +26,7 @@ export class TestRunHandler {
         };
 
         queue.forEach(startTest);
-        
+
         const globPatterns = pathUtils.filterCoveredPatterns(this.getGlobPatterns(queue));
 
         try {
@@ -41,19 +41,30 @@ export class TestRunHandler {
 
     private async handleResult(result: MutantResult[], run: vscode.TestRun) {
         for (const mutantResult of result) {
-            
+
             const cwd = vscode.workspace.workspaceFolders![0].uri.fsPath; // TODO: Temp hack fixed when backlog item #6642 is resolved
             const relativeFilePath = mutantResult.fileName.replace(cwd + '/', '');
 
             const testItem = this.testControllerHandler.addMutantToTestExplorer(relativeFilePath, mutantResult);
 
-            if (mutantResult.status === 'Killed') {
-                run.passed(testItem);
-            } else {
-                run.failed(testItem, await this.createTestMessage(mutantResult));
-                testItem.description = mutantResult.status;
+            testItem.description = mutantResult.status;
+
+            switch (mutantResult.status) {
+                case 'Timeout':
+                case 'RuntimeError':
+                case 'CompileError':
+                case 'Killed':
+                    run.passed(testItem);
+                    break;
+                case 'Ignored':
+                    run.skipped(testItem);
+                    break;
+                default:
+                    run.failed(testItem, await this.createTestMessage(mutantResult));
+                    break;
             }
         }
+
     };
 
     private getGlobPatterns(testItems: vscode.TestItem[]): string[] {
