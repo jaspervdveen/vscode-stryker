@@ -8,11 +8,11 @@ export const testItemUtils = {
         const directories = path.split('/');
         const fileName = directories[directories.length - 1];
 
-        let currentNode = collection;
+        let currentNodes = collection;
 
         // Iterate through the directories to find the file test item in the tree
         for (const directory of directories) {
-            let node = currentNode.get(directory);
+            let node = currentNodes.get(directory);
 
             if (node && node.id === fileName) {
                 return node;
@@ -22,7 +22,7 @@ export const testItemUtils = {
                 return undefined;
             }
 
-            currentNode = node.children;
+            currentNodes = node.children;
         }
     },
 
