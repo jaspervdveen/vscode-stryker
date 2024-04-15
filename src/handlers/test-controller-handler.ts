@@ -1,6 +1,6 @@
-import { FileResult, MutantResult, MutationTestResult } from "mutation-testing-report-schema";
+import * as schema from "mutation-testing-report-schema";
 import * as vscode from 'vscode';
-import { testItemUtils } from "../utils/test-item-utils";
+import { MutantResult } from "../api/mutant-result";
 
 export class TestControllerHandler {
     private testController: vscode.TestController;
@@ -13,15 +13,8 @@ export class TestControllerHandler {
         this.testController.invalidateTestResults();
     }
 
-    private getMutantId(mutant: MutantResult): string {
+    private getMutantId(mutant: schema.MutantResult): string {
         return `${mutant.mutatorName}(${mutant.location.start.line}:${mutant.location.start.column}-${mutant.location.end.line}:${mutant.location.end.column}) (${mutant.replacement})`;
-    }
-
-    public replaceTestExplorerContent(mutationReport: MutationTestResult) {
-        const testItemNodes = testItemUtils.createNodeTree(mutationReport.files);
-        const testItems = testItemUtils.createTestItems(testItemNodes, this.testController);
-
-        this.testController.items.replace(testItems);
     }
 
     private deletePathFromTestExplorer(path: string): void {
@@ -54,26 +47,33 @@ export class TestControllerHandler {
         }
     }
 
-    public addMutantToTestExplorer(filePath: string, mutant: MutantResult): vscode.TestItem {
+    public addMutantToTestExplorer(filePath: string, mutant: schema.MutantResult): vscode.TestItem {
         const directories = filePath.split('/');
 
         let currentNode = this.testController.items;
 
+        let currentUri: string = "";
+
         directories.forEach(directory => {
+            currentUri += `/${directory}`;
+
             let childNode = currentNode.get(directory);
 
+            // If the child node doesn't exist, create a new test item for the directory
             if (!childNode) {
-                childNode = this.testController.createTestItem(directory, directory);
+                const uri = vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}${currentUri}`);
+                childNode = this.testController.createTestItem(directory, directory, uri);
+
                 currentNode.add(childNode);
             }
 
             currentNode = childNode.children;
         });
 
-        const testItem = testItemUtils.createTestItem(
+        // Create and add a test item for the mutant with the given filePath
+        const testItem = this.createTestItem(
             mutant,
-            vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${filePath}`),
-            this.testController
+            vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${filePath}`)
         );
 
         currentNode.add(testItem);
@@ -81,80 +81,82 @@ export class TestControllerHandler {
         return testItem;
     }
 
-
     public deleteFromTestExplorer(paths: string[]): void {
-        for (const path of paths) { 
+        for (const path of paths) {
             this.deletePathFromTestExplorer(path);
         }
     }
 
-    private addFileToTestExplorer(path: string, result: FileResult): void {
-        const directories = path.split('/');
+    public updateTestExplorerFromInstrumentRun(result: MutantResult[]) {
+        const groupedByFile = this.groupBy(result, 'fileName');
 
-        let currentNodes = this.testController.items;
+        for (const [filePath, mutants] of Object.entries(groupedByFile)) {
+            const cwd = vscode.workspace.workspaceFolders![0].uri.fsPath; // TODO: Temp hack fixed when backlog item #6642 is resolved
+            const relativeFilePath = filePath.replace(cwd + '/', '');
 
-        // Create folder/file test item structure if it doesn't exist
-        directories.forEach(directory => {
-            let childNode = currentNodes.get(directory);
+            const testItem = this.findFileTestItemByPath(relativeFilePath);
 
-            if (!childNode) {
-                childNode = this.testController.createTestItem(directory, directory);
-                currentNodes.add(childNode);
-            }
-
-            currentNodes = childNode.children;
-        });
-
-        // Add mutants to the file test item's children
-        result.mutants.forEach(mutant => {
-            const testItem = testItemUtils.createTestItem(
-                mutant,
-                vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${path}`),
-                this.testController
-            );
-            currentNodes.add(testItem);
-        });
-    }
-
-    public addToTestExplorer(result: MutationTestResult): any {
-        Object.keys(result.files).forEach(path => {
-            this.addFileToTestExplorer(path, result.files[path]);
-        });
-    }
-
-    public updateTestExplorerFromInstrumentRun(result: MutationTestResult) {
-        Object.keys(result.files).forEach(path => {
-            const mutants = result.files[path].mutants;
-
-            const testItem = testItemUtils.findFileTestItemByPath(this.testController.items, path);
-
-            if (!testItem) {
-                this.addFileToTestExplorer(path, result.files[path]);
-            }
-            else {
-                const currentMutantTestItems = testItem.children;
-
+            if (testItem) {
                 // Remove mutants in Test Explorer that are not existent in the new instrument result
-                for (const [id] of currentMutantTestItems) {
-                    const mutant = mutants.find(mutant => this.getMutantId(mutant) === id);
-                    if (!mutant) {
-                        currentMutantTestItems.delete(id);
+                for (const [id] of testItem.children) {
+                    const mutantResult = mutants.find(mutantResult => this.getMutantId(mutantResult) === id);
+                    if (!mutantResult) {
+                        testItem.children.delete(id);
                     }
                 }
-
-                // Add new mutants that are not found in the Test Explorer
-                mutants.forEach(mutant => {
-                    const mutantId = this.getMutantId(mutant);
-                    if (!currentMutantTestItems.get(mutantId)) {
-                        const testItem = testItemUtils.createTestItem(
-                            mutant,
-                            vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${path}`),
-                            this.testController
-                        );
-                        currentMutantTestItems.add(testItem);
-                    }
-                });
             }
-        });
+
+            mutants.forEach(mutant => { this.addMutantToTestExplorer(relativeFilePath, mutant); });
+        }
+    }
+
+    private findFileTestItemByPath(path: string): vscode.TestItem | undefined {
+        const directories = path.split('/');
+        const fileName = directories[directories.length - 1];
+
+        let currentCollection = this.testController.items;
+
+        // Iterate through the directories to find the file test item in the tree
+        for (const directory of directories) {
+            let node = currentCollection.get(directory);
+
+            if (node && node.id === fileName) {
+                return node;
+            }
+
+            if (!node) {
+                return undefined;
+            }
+
+            currentCollection = node.children;
+        }
+    }
+
+    private createTestItem(mutant: schema.MutantResult, fileUri: vscode.Uri): vscode.TestItem {
+        const mutantId = `${mutant.mutatorName}(${mutant.location.start.line}:${mutant.location.start.column}-${mutant.location.end.line}:${mutant.location.end.column}) (${mutant.replacement})`;
+        const testItem = this.testController.createTestItem(mutantId, `${mutant.mutatorName} (${mutant.location.start.line}:${mutant.location.start.column})`, fileUri);
+
+        testItem.range = new vscode.Range(
+            new vscode.Position(mutant.location.start.line - 1, mutant.location.start.column - 1),
+            new vscode.Position(mutant.location.end.line - 1, mutant.location.end.column - 1)
+        );
+
+        return testItem;
+    }
+
+    private groupBy<T>(array: T[], property: keyof T): { [key: string]: T[] } {
+        return array.reduce((accumulator: { [key: string]: T[] }, object: T) => {
+            // Extract the value of the specified property from the current object
+            const key = String(object[property]);
+
+            // If the key doesn't exist in the accumulator object, create it and initialize it as an empty array
+            if (!accumulator[key]) {
+                accumulator[key] = [];
+            }
+
+            // Push the current object into the array corresponding to its key
+            accumulator[key].push(object);
+            return accumulator;
+        }, {});
     }
 }

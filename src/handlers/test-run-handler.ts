@@ -4,9 +4,9 @@ import { MutationServer } from '../mutation-server/mutation-server';
 import { TestControllerHandler } from './test-controller-handler';
 import { pathUtils } from '../utils/path-utils';
 import { MutantResult } from '../api/mutant-result';
+import { statSync } from 'fs';
 
 export class TestRunHandler {
-
     constructor(
         private testController: vscode.TestController,
         private mutationServer: MutationServer,
@@ -72,14 +72,15 @@ export class TestRunHandler {
 
         testItems.forEach(testItem => {
             const uri = testItem.uri;
-            if (uri) {
-                // Item is a file or mutant
-                const globPattern = vscode.workspace.asRelativePath(uri);
-                if (globPattern) {
-                    globPatterns.push(globPattern);
-                }
-            } else {
-                // Item is a folder, everything in the folder should be included
+
+            if (!uri) {
+                throw new Error('Test item should have a URI');
+            }
+
+            const isDirectory = statSync(uri.fsPath).isDirectory();
+
+            if (isDirectory) {
+                // Everything in the directory should be included
                 // Reconstruct the glob pattern from the test item
                 let globPattern = `${testItem.label}/**/*`;
                 let parent = testItem.parent;
@@ -89,6 +90,12 @@ export class TestRunHandler {
                 }
 
                 globPatterns.push(globPattern);
+            } else {
+                // Item is a file or mutant
+                const globPattern = vscode.workspace.asRelativePath(uri);
+                if (globPattern) {
+                    globPatterns.push(globPattern);
+                }
             }
         });
 

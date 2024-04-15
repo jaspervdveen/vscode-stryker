@@ -25,7 +25,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	
 	try {
 		const instrumentationResult = await mutationServer.instrument();
-		testControllerHandler.replaceTestExplorerContent(instrumentationResult);
+		testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentationResult);
 	} catch (error: any) {
 		vscode.window.showErrorMessage(config.errors.instrumentationFailed);
 		logger.logError(error.toString());

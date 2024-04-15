@@ -51,7 +51,7 @@ export class FileChangeHandler {
         });
     }
 
-    async createFileWatchers() {
+    private async createFileWatchers() {
         if (!vscode.workspace.workspaceFolders) {
             this.logger.logError('No workspace folders found');
             throw new Error('No workspace folders found');
@@ -84,7 +84,5 @@ export class FileChangeHandler {
             });
         });
     }
-
-
 }
 

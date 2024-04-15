@@ -4,7 +4,6 @@ import { Logger } from "../utils/logger.js";
 import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from "json-rpc-2.0";
 import { WebSocket, Data } from 'ws';
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
-import { MutationTestResult } from "mutation-testing-report-schema";
 import { MutationServerMethods } from "./mutation-server-methods.js";
 import * as vscode from 'vscode';
 import { MutantResult } from "../api/mutant-result.js";
@@ -59,7 +58,7 @@ export class MutationServer {
         });
     }
 
-    public async instrument(globPatterns?: string[]): Promise<MutationTestResult> {
+    public async instrument(globPatterns?: string[]): Promise<MutantResult[]> {
         return await window.withProgress({
             location: ProgressLocation.Window,
             title: config.messages.instrumentationRunning,
