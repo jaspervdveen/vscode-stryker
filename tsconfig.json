@@ -1,8 +1,11 @@
 {
+	"exclude": [ "node_modules", "out" ],
 	"compilerOptions": {
-		"module": "Node16",
+		"module": "CommonJS",
 		"target": "ES2022",
 		"outDir": "out",
+		"resolveJsonModule": true,
+		"esModuleInterop": true,
 		"lib": [
 			"ES2022"
 		],

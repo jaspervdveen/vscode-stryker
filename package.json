@@ -9,13 +9,34 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "stryker-mutator.helloWorld",
-        "title": "Hello World"
+        "command": "stryker-mutator.instrument",
+        "title": "Stryker: Instrument workspace"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "Stryker Mutator",
+        "properties": {
+          "stryker-mutator.mutationServerExecutablePath": {
+            "type": "string",
+            "default": "./node_modules/.bin/stryker-mutator/stryker-server",
+            "description": "The path to the mutation server executable."
+          },
+          "stryker-mutator.mutationServerPort": {
+            "type": "number",
+            "default": 8080,
+            "description": "The port of the mutation WebSocket server.",
+            "minimum": 1,
+            "maximum": 65535
+          }
+        }
       }
     ]
   },
@@ -28,14 +49,22 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.86.0",
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
+    "@types/vscode": "^1.86.0",
+    "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
     "@typescript-eslint/parser": "^6.19.1",
-    "eslint": "^8.56.0",
-    "typescript": "^5.3.3",
     "@vscode/test-cli": "^0.0.4",
-    "@vscode/test-electron": "^2.3.9"
+    "@vscode/test-electron": "^2.3.9",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "json-rpc-2.0": "^1.7.0",
+    "minimatch": "^9.0.4",
+    "mutation-testing-report-schema": "^3.0.2",
+    "rxjs": "^7.8.1",
+    "ws": "^8.16.0"
   }
 }
