@@ -32,7 +32,7 @@ export class FileChangeHandler {
 
             try {
                 // Instrument files to detect changes
-                const instrumentResult = await mutationServer.instrument(filteredPaths);
+                const instrumentResult = await mutationServer.instrument({ globPatterns: filteredPaths });
 
                 testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentResult);
             } catch (error: any) {

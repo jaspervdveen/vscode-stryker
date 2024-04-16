@@ -5,6 +5,8 @@ import { TestControllerHandler } from './test-controller-handler';
 import { pathUtils } from '../utils/path-utils';
 import { MutantResult } from '../api/mutant-result';
 import { statSync } from 'fs';
+import { MutateParams } from '../mutation-server/mutation-server-methods';
+import { v4 as uuidv4 } from 'uuid';
 
 export class TestRunHandler {
     constructor(
@@ -21,7 +23,11 @@ export class TestRunHandler {
         const queue: vscode.TestItem[] = request.include ? [...request.include] : [...this.testController.items].map(([_, testItem]) => testItem);
 
         const startTest = (test: vscode.TestItem) => {
-            run.started(test);
+            const isMutant = test.range;
+            if (isMutant) {
+                run.started(test);
+            }
+
             test.children?.forEach(startTest);
         };
 
@@ -30,8 +36,15 @@ export class TestRunHandler {
         const globPatterns = pathUtils.filterCoveredPatterns(this.getGlobPatterns(queue));
 
         try {
-            const result = await this.mutationServer.mutate(globPatterns);
-            await this.handleResult(result, run);
+            const mutateParams: MutateParams = {
+                globPatterns: globPatterns,
+                partialResultToken: uuidv4(),
+            };
+
+            await this.mutationServer.mutate(mutateParams, async (partialResult) => {
+                await this.handleResult(partialResult.mutants, run);
+            });
+
         } catch (error: any) {
             run.appendOutput(error.toString());
         } finally {
@@ -41,13 +54,12 @@ export class TestRunHandler {
 
     private async handleResult(result: MutantResult[], run: vscode.TestRun) {
         for (const mutantResult of result) {
-
-            const cwd = vscode.workspace.workspaceFolders![0].uri.fsPath; // TODO: Temp hack fixed when backlog item #6642 is resolved
-            const relativeFilePath = mutantResult.fileName.replace(cwd + '/', '');
+            const relativeFilePath = vscode.workspace.asRelativePath(mutantResult.fileName);
 
             const testItem = this.testControllerHandler.addMutantToTestExplorer(relativeFilePath, mutantResult);
 
-            testItem.description = mutantResult.status;
+            const location: vscode.Location = new vscode.Location(testItem.uri!, testItem.range!);
+            run.appendOutput(this.createOutputMessage(mutantResult), location, testItem);
 
             switch (mutantResult.status) {
                 case 'Timeout':
@@ -66,6 +78,44 @@ export class TestRunHandler {
         }
 
     };
+    
+    private createOutputMessage(mutant: MutantResult): string {
+        let outputMessage = "";
+    
+        const relativeFilePath = vscode.workspace.asRelativePath(mutant.fileName);
+
+        const makeBold = (text: string) => `\x1b[1m${text}\x1b[0m`;
+        const makeBlue = (text: string) => `\x1b[34m${text}\x1b[0m`;
+        const makeYellow = (text: string) => `\x1b[33m${text}\x1b[0m`;
+    
+        outputMessage += `[${mutant.status}] ${mutant.mutatorName}\r\n`;
+        outputMessage += `${makeBlue(relativeFilePath)}:${makeYellow(mutant.location.start.line.toString())}:${makeYellow(mutant.location.start.column.toString())}\r\n`;
+        outputMessage += `${makeBold("Replacement:")} ${mutant.replacement}\r\n`;
+        outputMessage += `${makeBold("Covered by tests:")}\r\n`;
+        if (mutant.coveredBy && mutant.coveredBy.length > 0) {
+            mutant.coveredBy.forEach(test => {
+                outputMessage += `\t${test}\r\n`;
+            });
+        }
+        
+        outputMessage += `${makeBold("Killed by tests:")}\r\n`;
+        if (mutant.killedBy && mutant.killedBy.length > 0) {
+            mutant.killedBy.forEach(test => {
+                outputMessage += `\t${test}\r\n`;
+            });
+        }
+
+        if (mutant.duration) {
+            outputMessage += `${makeBold("Test Duration:")}${mutant.duration} milliseconds\r\n`;
+        }
+        if (mutant.testsCompleted) {
+            outputMessage += `${makeBold("Tests Completed:")}${mutant.testsCompleted}\r\n`;
+        }
+    
+        outputMessage += "\r\n\r\n";
+    
+        return outputMessage;
+    }
 
     private getGlobPatterns(testItems: vscode.TestItem[]): string[] {
         const globPatterns: string[] = [];
@@ -92,7 +142,12 @@ export class TestRunHandler {
                 globPatterns.push(globPattern);
             } else {
                 // Item is a file or mutant
-                const globPattern = vscode.workspace.asRelativePath(uri);
+                let globPattern = vscode.workspace.asRelativePath(uri);
+                if (testItem.range) {
+                    // Item is a mutant, add the range to the glob pattern
+                    globPattern += `:${testItem.range.start.line + 1}:${testItem.range.start.character}-${testItem.range.end.line + 1}:${testItem.range.end.character + 1}`;
+                } 
+
                 if (globPattern) {
                     globPatterns.push(globPattern);
                 }

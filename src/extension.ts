@@ -24,7 +24,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	new TestRunHandler(controller, mutationServer, testControllerHandler);
 	
 	try {
-		const instrumentationResult = await mutationServer.instrument();
+		const instrumentationResult = await mutationServer.instrument({});
 		testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentationResult);
 	} catch (error: any) {
 		vscode.window.showErrorMessage(config.errors.instrumentationFailed);
@@ -33,7 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	vscode.commands.registerCommand('stryker-mutator.instrument', async () => {
 		try {
-			const result = await mutationServer.instrument();
+			const result = await mutationServer.instrument({});
 			testControllerHandler.updateTestExplorerFromInstrumentRun(result);
 		} catch (error: any) {
 			vscode.window.showErrorMessage(config.errors.instrumentationFailed);

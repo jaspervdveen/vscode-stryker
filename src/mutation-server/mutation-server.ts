@@ -4,14 +4,21 @@ import { Logger } from "../utils/logger.js";
 import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from "json-rpc-2.0";
 import { WebSocket, Data } from 'ws';
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
-import { MutationServerMethods } from "./mutation-server-methods.js";
+import { InstrumentParams, MutateParams, MutatePartialResult, MutationServerMethods, ProgressParams } from "./mutation-server-methods.js";
 import * as vscode from 'vscode';
 import { MutantResult } from "../api/mutant-result.js";
+import { Subject, filter, map } from "rxjs";
 
 export class MutationServer {
     private process: ChildProcessWithoutNullStreams;
     private rpcClient: TypedJSONRPCClient<MutationServerMethods> | undefined;
     private webSocket: WebSocket | undefined;
+
+    private notification$Subject = new Subject<JSONRPCRequest>();
+    public progressNotification$ = this.notification$Subject.pipe(
+        filter((request) => request.method === 'progress'),
+        map((request) => request.params as ProgressParams<any>)
+    );
 
     constructor(private logger: Logger) {
         // Start the mutation server
@@ -58,7 +65,7 @@ export class MutationServer {
         });
     }
 
-    public async instrument(globPatterns?: string[]): Promise<MutantResult[]> {
+    public async instrument(params: InstrumentParams): Promise<MutantResult[]> {
         return await window.withProgress({
             location: ProgressLocation.Window,
             title: config.messages.instrumentationRunning,
@@ -67,13 +74,13 @@ export class MutationServer {
                 throw new Error('Setup method not called.');
             }
 
-            const result = await this.rpcClient.request('instrument', { globPatterns: globPatterns });
+            const result = await this.rpcClient.request('instrument', params);
 
             return result;
         });
     }
 
-    public async mutate(globPatterns?: string[]): Promise<MutantResult[]> {
+    public async mutate(params: MutateParams, onPartialResult: (partialResult: MutatePartialResult) => void) {
         return await window.withProgress({
             location: ProgressLocation.Window,
             title: config.messages.mutationTestingRunning,
@@ -83,9 +90,12 @@ export class MutationServer {
                 throw new Error('Setup method not called.');
             }
 
-            const result = await this.rpcClient.request('mutate', { globPatterns: globPatterns });
+            this.progressNotification$.pipe(
+                filter((progress: ProgressParams<MutatePartialResult>) => progress.token === params.partialResultToken),
+                map((progress) => progress.value)
+            ).subscribe(onPartialResult);
 
-            return result;
+            await this.rpcClient.request('mutate', params);
         });
     }
 
@@ -101,16 +111,24 @@ export class MutationServer {
         this.webSocket = new WebSocket(`ws://localhost:${mutationServerPort}`);
 
         this.webSocket.on('message', (data: Data) => {
-            let response: JSONRPCResponse | undefined;
+            let response: JSONRPCResponse | JSONRPCRequest | undefined;
 
             try {
                 response = JSON.parse(data.toString());
             } catch (error) {
                 this.logger.logError(`Error parsing JSON: ${data.toString()}`);
+                return;
             }
 
             if (response) {
-                this.rpcClient!.receive(response);
+                const isNotification = !response.id;
+
+                if (isNotification) {
+                    this.notification$Subject.next(response as JSONRPCRequest);
+                } else {
+                    this.rpcClient!.receive(response as JSONRPCResponse);
+                }
+
             }
         });
 
