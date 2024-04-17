@@ -50,24 +50,24 @@ export class TestControllerHandler {
     public addMutantToTestExplorer(filePath: string, mutant: schema.MutantResult): vscode.TestItem {
         const directories = filePath.split('/');
 
-        let currentNode = this.testController.items;
+        let currentNodes = this.testController.items;
 
         let currentUri: string = "";
 
         directories.forEach(directory => {
             currentUri += `/${directory}`;
 
-            let childNode = currentNode.get(directory);
+            let childNode = currentNodes.get(directory);
 
             // If the child node doesn't exist, create a new test item for the directory
             if (!childNode) {
                 const uri = vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}${currentUri}`);
                 childNode = this.testController.createTestItem(directory, directory, uri);
 
-                currentNode.add(childNode);
+                currentNodes.add(childNode);
             }
 
-            currentNode = childNode.children;
+            currentNodes = childNode.children;
         });
 
         // Create and add a test item for the mutant with the given filePath
@@ -76,7 +76,7 @@ export class TestControllerHandler {
             vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${filePath}`)
         );
 
-        currentNode.add(testItem);
+        currentNodes.add(testItem);
 
         return testItem;
     }
