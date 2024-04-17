@@ -10,9 +10,9 @@ export interface Mutant {
      */
     replacement: string;
     /**
-     * The status of a mutant if known. This should be undefined for a mutant that still needs testing.
+     * The status of a mutant.
      */
-    status?: schema.MutantStatus;
+    status: schema.MutantStatus;
 }
 
 // Added these types here as they are used by StrykerJS but not defined in the schema
