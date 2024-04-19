@@ -42,9 +42,11 @@ export interface MutatePartialResult {
   mutants: MutantResult[];
 }
 
-export type MutationServerMethods = {
-    instrument(params: InstrumentParams): MutantResult[];
-    mutate(params: MutateParams): MutantResult[];
-};
+type MethodsType = Record<string, (params?: any) => any>;
+
+export interface MutationServerMethods extends MethodsType {
+  instrument(params: InstrumentParams): MutantResult[];
+  mutate(params: MutateParams): MutantResult[];
+}
 
 export type MutationServerMethodParams<T extends keyof MutationServerMethods> = Parameters<MutationServerMethods[T]>;
