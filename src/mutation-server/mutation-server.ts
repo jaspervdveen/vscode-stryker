@@ -23,7 +23,7 @@ export class MutationServer {
     map((request) => request.params as ProgressParams<any>),
   );
 
-  constructor(private readonly logger: Logger) {
+  private constructor(private readonly logger: Logger) {
     // Start the mutation server
     const workspaceConfig = vscode.workspace.getConfiguration(config.app.name);
 
@@ -60,7 +60,13 @@ export class MutationServer {
     });
   }
 
-  public async connect(): Promise<void> {
+  public static async create(logger: Logger): Promise<MutationServer> {
+    const server = new MutationServer(logger);
+    await server.connect();
+    return server;
+  }
+
+  private async connect(): Promise<void> {
     await this.waitForMutationServerStarted();
     this.connectViaWebSocket();
 

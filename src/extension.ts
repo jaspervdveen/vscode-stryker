@@ -15,8 +15,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   const logger = new Logger();
 
-  const mutationServer = new MutationServer(logger);
-  await mutationServer.connect();
+  const mutationServer = await MutationServer.create(logger);
 
   const controller = vscode.tests.createTestController(config.app.name, config.app.displayName);
   const testControllerHandler = new TestControllerHandler(controller);
