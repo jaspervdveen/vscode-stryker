@@ -1,0 +1,45 @@
+import sinon from 'sinon';
+import { describe, it, beforeEach, afterEach } from 'mocha';
+
+import * as vscode from 'vscode';
+
+import { Logger } from '../../../src/utils/logger';
+
+describe('Logger', function () {
+  let createOutputChannelStub: sinon.SinonStub;
+  let outputChannelMock: { appendLine: sinon.SinonStub };
+
+  beforeEach(() => {
+    createOutputChannelStub = sinon.stub(vscode.window, 'createOutputChannel');
+    outputChannelMock = createMockOutputChannel();
+    createOutputChannelStub.returns(outputChannelMock);
+  });
+
+  afterEach(() => {
+    createOutputChannelStub.restore();
+  });
+
+  describe('#logError', function () {
+    it('should append error message to output channel', function () {
+      const errorMessage = 'Test error message';
+      new Logger().logError(errorMessage);
+
+      sinon.assert.calledOnceWithExactly(outputChannelMock.appendLine, `[ERROR] ${errorMessage}`);
+    });
+  });
+
+  describe('#logInfo', function () {
+    it('should append info message to output channel', function () {
+      const infoMessage = 'Test info message';
+      new Logger().logInfo(infoMessage);
+
+      sinon.assert.calledOnceWithExactly(outputChannelMock.appendLine, `[INFO] ${infoMessage}`);
+    });
+  });
+});
+
+function createMockOutputChannel() {
+  return {
+    appendLine: sinon.stub(),
+  };
+}

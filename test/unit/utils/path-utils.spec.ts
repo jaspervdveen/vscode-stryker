@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { describe } from 'mocha';
+import { describe, it } from 'mocha';
 
 import { pathUtils } from '../../../src/utils/path-utils';
 
