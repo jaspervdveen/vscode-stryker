@@ -1,0 +1,4 @@
+{
+    "require": ["./out/test/setup.js"]
+}
+  

@@ -115,7 +115,7 @@
         }
       },
       {
-        "files": ["packages/*/test/**/*.+(ts|cts|mts)", "tasks/*.js", "packages/test-helpers/**/*.+(ts|cts|mts)"],
+        "files": ["test/**/*.+(ts|cts|mts)"],
         "rules": {
           "import/no-extraneous-dependencies": "off"
         }
