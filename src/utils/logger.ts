@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { config } from '../config';
 
 export class Logger {
+
     private outputChannel: vscode.OutputChannel;
 
     constructor() {
@@ -9,7 +10,11 @@ export class Logger {
     }
 
     public logError(message: string): void {
-        this.outputChannel.appendLine(message);
+        this.outputChannel.appendLine(`[ERROR] ${message}`);
+    }
+
+    public logInfo(message: string): void {
+        this.outputChannel.appendLine(`[INFO] ${message}`);
     }
 
     public errorNotification(message: string): void {

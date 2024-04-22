@@ -1,5 +1,6 @@
-import { MutationTestResult } from "mutation-testing-report-schema";
+import { MutantResult } from '../api/mutant-result';
 
 export type MutationServerMethods = {
-    instrument(params: { globPatterns?: string[] }): MutationTestResult;
+    instrument(params: { globPatterns?: string[] }): MutantResult[];
+    mutate(params: { globPatterns?: string[] }): MutantResult[];
 };

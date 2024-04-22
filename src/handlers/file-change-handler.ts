@@ -2,9 +2,9 @@ import { Subject, buffer, debounceTime } from 'rxjs';
 import * as vscode from 'vscode';
 import { config } from '../config';
 import { TestControllerHandler } from './test-controller-handler';
-import { minimatch } from 'minimatch';
 import { MutationServer } from '../mutation-server/mutation-server';
 import { Logger } from '../utils/logger';
+import { pathUtils } from '../utils/path-utils';
 
 export class FileChangeHandler {
     #changedFilePath$Subject = new Subject<string>();
@@ -22,11 +22,13 @@ export class FileChangeHandler {
             .pipe(buffer(this.changedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
 
         changedFileBufferedPath$.subscribe(async (paths) => {
+            testControllerHandler.invalidateTestResults();
+
             // Pass only unique paths to the mutation server, otherwise Stryker will not handle duplicates correctly
             const uniquePaths = paths.filter((value, index, self) => self.indexOf(value) === index);
 
             // Filter out paths that are covered by other paths, otherwise Stryker will not handle them correctly
-            const filteredPaths = this.filterCoveredPatterns(uniquePaths);
+            const filteredPaths = pathUtils.filterCoveredPatterns(uniquePaths);
 
             try {
                 // Instrument files to detect changes
@@ -43,11 +45,13 @@ export class FileChangeHandler {
             .pipe(buffer(this.deletedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))));
 
         deletedFileBufferedPath$.subscribe(paths => {
+            testControllerHandler.invalidateTestResults();
+
             testControllerHandler.deleteFromTestExplorer(paths);
         });
     }
 
-    async createFileWatchers() {
+    private async createFileWatchers() {
         if (!vscode.workspace.workspaceFolders) {
             this.logger.logError('No workspace folders found');
             throw new Error('No workspace folders found');
@@ -78,12 +82,6 @@ export class FileChangeHandler {
 
                 this.#deletedFilePath$Subject.next(relativePath);
             });
-        });
-    }
-
-    private filterCoveredPatterns(globPatterns: string[]): string[] {
-        return globPatterns.filter((globPattern, index) => {
-            return !globPatterns.some((otherGlobPattern, otherIndex) => otherIndex !== index && minimatch(globPattern, otherGlobPattern));
         });
     }
 }

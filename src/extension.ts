@@ -4,6 +4,7 @@ import { config } from './config.js';
 import { FileChangeHandler } from './handlers/file-change-handler.js';
 import { MutationServer } from './mutation-server/mutation-server.js';
 import { Logger } from './utils/logger.js';
+import { TestRunHandler } from './handlers/test-run-handler.js';
 
 export async function activate(context: vscode.ExtensionContext) {
 	if (!vscode.workspace.workspaceFolders) {
@@ -20,10 +21,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	const testControllerHandler = new TestControllerHandler(controller);
 	
 	new FileChangeHandler(mutationServer, testControllerHandler, logger);
+	new TestRunHandler(controller, mutationServer, testControllerHandler);
 	
 	try {
 		const instrumentationResult = await mutationServer.instrument();
-		testControllerHandler.replaceTestExplorerContent(instrumentationResult);
+		testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentationResult);
 	} catch (error: any) {
 		vscode.window.showErrorMessage(config.errors.instrumentationFailed);
 		logger.logError(error.toString());

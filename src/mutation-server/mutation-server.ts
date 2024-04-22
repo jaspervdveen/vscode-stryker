@@ -4,9 +4,9 @@ import { Logger } from "../utils/logger.js";
 import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from "json-rpc-2.0";
 import { WebSocket, Data } from 'ws';
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
-import { MutationTestResult } from "mutation-testing-report-schema";
 import { MutationServerMethods } from "./mutation-server-methods.js";
 import * as vscode from 'vscode';
+import { MutantResult } from "../api/mutant-result.js";
 
 export class MutationServer {
     private process: ChildProcessWithoutNullStreams;
@@ -28,6 +28,24 @@ export class MutationServer {
         const args = ['--port', mutationServerPort.toString()];
 
         this.process = spawn(mutationServerExecutablePath, args, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
+
+        if (this.process.pid === undefined) {
+            logger.logError(`[Mutation Server] Failed to start mutation server with executable path: ${mutationServerExecutablePath} `
+                + `and port: ${mutationServerPort}. These properties can be configured in the extension settings, then reload the window.`);
+            throw new Error(config.errors.mutationServerFailed);
+        }
+
+        this.process.on('exit', (code) => {
+            logger.logInfo(`[Mutation Server] Exited with code ${code}`);
+        });
+
+        this.process.stdout.on('data', (data) => {
+            logger.logInfo(`[Mutation Server] ${data.toString()}`);
+        });
+
+        this.process.stderr.on('data', (data) => {
+            logger.logError(`[Mutation Server] ${data.toString()}`);
+        });
     }
 
     public async connect() {
@@ -40,7 +58,7 @@ export class MutationServer {
         });
     }
 
-    public async instrument(globPatterns?: string[]): Promise<MutationTestResult> {
+    public async instrument(globPatterns?: string[]): Promise<MutantResult[]> {
         return await window.withProgress({
             location: ProgressLocation.Window,
             title: config.messages.instrumentationRunning,
@@ -50,6 +68,22 @@ export class MutationServer {
             }
 
             const result = await this.rpcClient.request('instrument', { globPatterns: globPatterns });
+
+            return result;
+        });
+    }
+
+    public async mutate(globPatterns?: string[]): Promise<MutantResult[]> {
+        return await window.withProgress({
+            location: ProgressLocation.Window,
+            title: config.messages.mutationTestingRunning,
+            cancellable: true
+        }, async () => {
+            if (!this.rpcClient) {
+                throw new Error('Setup method not called.');
+            }
+
+            const result = await this.rpcClient.request('mutate', { globPatterns: globPatterns });
 
             return result;
         });
@@ -72,7 +106,7 @@ export class MutationServer {
             try {
                 response = JSON.parse(data.toString());
             } catch (error) {
-                this.logger.logError(`Error parsing JSON: ${ data.toString()}`);
+                this.logger.logError(`Error parsing JSON: ${data.toString()}`);
             }
 
             if (response) {
@@ -82,6 +116,7 @@ export class MutationServer {
 
         this.webSocket.on('error', (err) => {
             this.logger.logError(`WebSocket Error: ${err}`);
+            this.logger.errorNotification(config.errors.mutationServerFailed);
         });
     };
 
