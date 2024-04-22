@@ -1,17 +1,25 @@
-import { describe, it, beforeEach, afterEach, before } from 'mocha';
+import { beforeEach, afterEach } from 'mocha';
 import * as vscode from 'vscode';
 import * as schema from 'mutation-testing-report-schema';
 import { expect } from 'chai';
+import sinon from 'sinon';
 
 import { TestControllerHandler } from '../../../src/handlers/test-controller-handler';
 
-describe('testControllerHandler', () => {
+suite('testControllerHandler', () => {
   let controller: vscode.TestController;
   let handler: TestControllerHandler;
 
-  before(() => {
-    vscode.workspace.updateWorkspaceFolders(0, 1, { uri: vscode.Uri.parse('workspace'), name: 'workspace' });
-  });
+  const exampleMutant: schema.MutantResult = {
+    id: '1',
+    location: {
+      start: { line: 8, column: 4 },
+      end: { line: 6, column: 10 },
+    },
+    mutatorName: 'ArrayDeclaration',
+    replacement: '[]',
+    status: 'Pending',
+  };
 
   beforeEach(() => {
     controller = vscode.tests.createTestController('name', 'displayName');
@@ -22,46 +30,94 @@ describe('testControllerHandler', () => {
     controller.dispose();
   });
 
-  describe('addMutantToTestExplorer', () => {
-    it('should add test item at correct place in tree', function () {
+  suite('addMutantToTestExplorer', () => {
+    test('should add test item at correct place in tree', () => {
+      // Arrange
       const filePath = 'lets/test/file.ts';
 
-      const mutant: schema.MutantResult = {
-        id: '1',
-        location: {
-          end: { column: 1, line: 1 },
-          start: { column: 1, line: 1 },
-        },
-        mutatorName: 'mutator',
-        replacement: 'replacement',
-        status: 'Killed',
-      };
+      // Act
+      handler.addMutantToTestExplorer(filePath, exampleMutant);
 
-      handler.addMutantToTestExplorer(filePath, mutant);
-
-      const item = controller.items.get('lets')?.children.get('test')?.children.get('file.ts');
-      expect(item).to.not.be.undefined;
+      // Assert
+      const letsDirectory = controller.items.get('lets');
+      expect(letsDirectory).to.not.be.undefined;
+      const testDirectory = letsDirectory?.children.get('test');
+      expect(testDirectory).to.not.be.undefined;
+      const fileItem = testDirectory?.children.get('file.ts');
+      expect(fileItem).to.not.be.undefined;
     });
 
-    it('should add mutant with correct properties', function () {
-      const filePath = 'new/file.ts';
-      const mutant: schema.MutantResult = {
-        id: '3', // Unique ID for the mutant
-        location: { end: { column: 3, line: 3 }, start: { column: 2, line: 2 } },
-        mutatorName: 'mutator3',
-        replacement: 'replacement3',
-        status: 'Survived',
-      };
+    test('should add mutant with correct properties', () => {
+      // Arrange
+      const filePath = 'lets/test/file.ts';
 
-      const addedTestItem = handler.addMutantToTestExplorer(filePath, mutant);
+      // Act
+      const addedTestItem = handler.addMutantToTestExplorer(filePath, exampleMutant);
 
-      expect(addedTestItem).to.not.be.undefined; // Ensure the test item is added
-      expect(addedTestItem.label).to.equal(`${mutant.mutatorName} (2:2)`); // Check label
-      expect(addedTestItem.id).to.equal('mutator3(2:2-3:3) (replacement3)'); // Check ID
-      expect(addedTestItem.range?.start).to.deep.equal(new vscode.Position(1, 1)); // Check start position
-      expect(addedTestItem.range?.end).to.deep.equal(new vscode.Position(2, 2)); // Check end position
-      expect(addedTestItem.children.size).to.equal(0); // Ensure no children are added
-      expect(addedTestItem.uri).to.deep.equal(vscode.Uri.file('workspace/new/file.ts')); // Check URI
+      // Assert
+      expect(addedTestItem).to.not.be.undefined;
+      expect(addedTestItem.label).to.equal(
+        `${exampleMutant.mutatorName} (${exampleMutant.location.start.line}:${exampleMutant.location.start.column})`,
+      );
+      expect(addedTestItem.id).to.equal(
+        `${exampleMutant.mutatorName}(${exampleMutant.location.start.line}:${exampleMutant.location.start.column}-${exampleMutant.location.end.line}:${exampleMutant.location.end.column}) (${exampleMutant.replacement})`,
+      );
+      expect(addedTestItem.range).to.deep.equal(
+        new vscode.Range(
+          new vscode.Position(exampleMutant.location.start.line - 1, exampleMutant.location.start.column - 1),
+          new vscode.Position(exampleMutant.location.end.line - 1, exampleMutant.location.end.column - 1),
+        ),
+      );
+      expect(addedTestItem.children.size).to.equal(0);
+      expect(addedTestItem.uri).to.be.not.undefined;
+      expect(vscode.workspace.asRelativePath(addedTestItem.uri!)).to.deep.equal(filePath);
+    });
+  });
+
+  suite('invalidateTestResults', () => {
+    test('should invalidate test results', () => {
+      // Arrange
+      const spy = sinon.spy(controller, 'invalidateTestResults');
+
+      // Act
+      handler.invalidateTestResults();
+
+      // Assert
+      expect(spy.calledOnce).to.be.true;
+    });
+  });
+
+  suite('deleteFromTestExplorer', () => {
+    test('should delete path from test explorer and parent directories without tests', () => {
+      // Arrange
+      handler.addMutantToTestExplorer('lets/test/file.ts', exampleMutant);
+
+      // Act
+      handler.deleteFromTestExplorer(['lets/test/file.ts']);
+
+      // Assert
+      expect(controller.items.size).to.equal(0);
+    });
+
+    test('should delete but not touch remaining test items', () => {
+      // Arrange
+      handler.addMutantToTestExplorer('lets/test/file_one.ts', exampleMutant);
+      handler.addMutantToTestExplorer('lets/test/file_two.ts', exampleMutant);
+      handler.addMutantToTestExplorer('lets/file_three.ts', exampleMutant);
+
+      // Act
+      handler.deleteFromTestExplorer(['lets/test/file_one.ts', 'lets/test/file_two.ts']);
+
+      // Assert
+      expect(controller.items.size).to.equal(1);
+      const letsDirectory = controller.items.get('lets');
+      expect(letsDirectory).to.not.be.undefined;
+      expect(letsDirectory!.children.size).to.equal(1);
+      const testDirectory = letsDirectory!.children.get('test');
+      expect(testDirectory).to.be.undefined;
+      const fileThree = letsDirectory!.children.get('file_three.ts');
+      expect(fileThree).to.not.be.undefined;
+      expect(fileThree!.children.size).to.equal(1);
     });
   });
 });

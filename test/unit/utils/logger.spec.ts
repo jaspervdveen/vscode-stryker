@@ -1,26 +1,28 @@
 import sinon from 'sinon';
-import { describe, it, beforeEach, afterEach } from 'mocha';
+import { beforeEach, afterEach } from 'mocha';
 
 import * as vscode from 'vscode';
 
 import { Logger } from '../../../src/utils/logger';
 
-describe('Logger', function () {
+suite('Logger', function () {
   let createOutputChannelStub: sinon.SinonStub;
   let outputChannelMock: { appendLine: sinon.SinonStub };
+  const sandbox: sinon.SinonSandbox = sinon.createSandbox();
 
   beforeEach(() => {
-    createOutputChannelStub = sinon.stub(vscode.window, 'createOutputChannel');
+    createOutputChannelStub = sandbox.stub(vscode.window, 'createOutputChannel');
     outputChannelMock = createMockOutputChannel();
     createOutputChannelStub.returns(outputChannelMock);
   });
 
   afterEach(() => {
     createOutputChannelStub.restore();
+    sandbox.restore();
   });
 
-  describe('logError', function () {
-    it('should append error message to output channel', function () {
+  suite('logError', () => {
+    test('should append error message to output channel', () => {
       const errorMessage = 'Test error message';
       new Logger().logError(errorMessage);
 
@@ -28,8 +30,8 @@ describe('Logger', function () {
     });
   });
 
-  describe('logInfo', function () {
-    it('should append info message to output channel', function () {
+  suite('logInfo', () => {
+    test('should append info message to output channel', () => {
       const infoMessage = 'Test info message';
       new Logger().logInfo(infoMessage);
 
@@ -37,11 +39,11 @@ describe('Logger', function () {
     });
   });
 
-  describe('errorNotification', () => {
-    it('should show error message notification', async function () {
+  suite('errorNotification', () => {
+    test('should show error message notification', () => {
       const errorMessage = 'Test error message';
 
-      const spy = sinon.spy(vscode.window, 'showErrorMessage');
+      const spy = sandbox.spy(vscode.window, 'showErrorMessage');
 
       void new Logger().errorNotification(errorMessage);
 
@@ -49,11 +51,11 @@ describe('Logger', function () {
     });
   });
 
-  describe('infoNotification', () => {
-    it('should show info message notification', async function () {
+  suite('infoNotification', () => {
+    test('should show info message notification', () => {
       const infoMessage = 'Test info message';
 
-      const spy = sinon.spy(vscode.window, 'showInformationMessage');
+      const spy = sandbox.spy(vscode.window, 'showInformationMessage');
 
       void new Logger().infoNotification(infoMessage);
 
@@ -61,11 +63,11 @@ describe('Logger', function () {
     });
   });
 
-  describe('warningNotification', () => {
-    it('should show warning message notification', async function () {
+  suite('warningNotification', () => {
+    test('should show warning message notification', () => {
       const warningMessage = 'Test warning message';
 
-      const spy = sinon.spy(vscode.window, 'showWarningMessage');
+      const spy = sandbox.spy(vscode.window, 'showWarningMessage');
 
       void new Logger().warningNotification(warningMessage);
 

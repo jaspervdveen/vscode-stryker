@@ -43,6 +43,11 @@ export class TestControllerHandler {
     // Remove parent directories that have no children
     while (parent && parent.children.size === 0) {
       const parentParent: vscode.TestItem | undefined = parent.parent;
+      if (!parentParent) {
+        // Parent is top-level item
+        this.testController.items.delete(parent.id);
+        break;
+      }
       parentParent?.children.delete(parent.id);
       parent = parentParent;
     }
@@ -55,8 +60,8 @@ export class TestControllerHandler {
 
     let currentUri = '';
 
-    directories.forEach((directory) => {
-      currentUri += `/${directory}`;
+    directories.forEach((directory, index) => {
+      currentUri += `${index === 0 ? '/' : ''}${directory}`;
 
       let childNode = currentNode.get(directory);
 

@@ -2,6 +2,7 @@ import { defineConfig } from '@vscode/test-cli';
 
 export default defineConfig({
 	files: 'out/test/**/*.spec.js',
+	workspaceFolder: './test/testWorkspace',
 	mocha: {
 		require: ["./out/test/setup.js"]
 	}

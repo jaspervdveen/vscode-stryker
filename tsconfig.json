@@ -1,5 +1,5 @@
 {
-	"exclude": [ "node_modules", "out" ],
+	"exclude": [ "node_modules", "out", ".vscode-test" ],
 	"compilerOptions": {
 		"module": "CommonJS",
 		"target": "ES2022",
