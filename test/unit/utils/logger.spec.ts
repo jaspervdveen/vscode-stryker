@@ -1,5 +1,4 @@
 import sinon from 'sinon';
-import { beforeEach, afterEach } from 'mocha';
 
 import * as vscode from 'vscode';
 
@@ -10,13 +9,13 @@ suite('Logger', function () {
   let outputChannelMock: { appendLine: sinon.SinonStub };
   const sandbox: sinon.SinonSandbox = sinon.createSandbox();
 
-  beforeEach(() => {
+  setup(() => {
     createOutputChannelStub = sandbox.stub(vscode.window, 'createOutputChannel');
     outputChannelMock = createMockOutputChannel();
     createOutputChannelStub.returns(outputChannelMock);
   });
 
-  afterEach(() => {
+  teardown(() => {
     createOutputChannelStub.restore();
     sandbox.restore();
   });

@@ -1,4 +1,3 @@
-import { beforeEach, afterEach } from 'mocha';
 import * as vscode from 'vscode';
 import * as schema from 'mutation-testing-report-schema';
 import { expect } from 'chai';
@@ -44,12 +43,12 @@ suite('testControllerHandler', () => {
     },
   ];
 
-  beforeEach(() => {
+  setup(() => {
     controller = vscode.tests.createTestController('name', 'displayName');
     handler = new TestControllerHandler(controller);
   });
 
-  afterEach(() => {
+  teardown(() => {
     controller.dispose();
   });
 
