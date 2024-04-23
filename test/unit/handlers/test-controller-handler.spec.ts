@@ -6,7 +6,7 @@ import sinon from 'sinon';
 import { TestControllerHandler } from '../../../src/handlers/test-controller-handler';
 import { MutantResult } from '../../api/mutant-result';
 
-suite('testControllerHandler', () => {
+describe('testControllerHandler', () => {
   let controller: vscode.TestController;
   let handler: TestControllerHandler;
 
@@ -43,17 +43,17 @@ suite('testControllerHandler', () => {
     },
   ];
 
-  setup(() => {
+  beforeEach(() => {
     controller = vscode.tests.createTestController('name', 'displayName');
     handler = new TestControllerHandler(controller);
   });
 
-  teardown(() => {
+  afterEach(() => {
     controller.dispose();
   });
 
-  suite('addMutantToTestExplorer', () => {
-    test('should add test item at correct place in tree', () => {
+  describe('addMutantToTestExplorer', () => {
+    it('should add test item at correct place in tree', () => {
       // Arrange
       const [exampleMutant] = exampleMutants;
       const filePath = 'lets/test/file.ts';
@@ -70,7 +70,7 @@ suite('testControllerHandler', () => {
       expect(fileItem).to.not.be.undefined;
     });
 
-    test('should add mutant with correct properties', () => {
+    it('should add mutant with correct properties', () => {
       // Arrange
       const filePath = 'lets/test/file.ts';
       const [exampleMutant] = exampleMutants;
@@ -96,8 +96,8 @@ suite('testControllerHandler', () => {
     });
   });
 
-  suite('invalidateTestResults', () => {
-    test('should invalidate test results', () => {
+  describe('invalidateTestResults', () => {
+    it('should invalidate test results', () => {
       // Arrange
       const spy = sinon.spy(controller, 'invalidateTestResults');
 
@@ -109,8 +109,8 @@ suite('testControllerHandler', () => {
     });
   });
 
-  suite('deleteFromTestExplorer', () => {
-    test('should delete path from test explorer and parent directories without tests', () => {
+  describe('deleteFromTestExplorer', () => {
+    it('should delete path from test explorer and parent directories without tests', () => {
       // Arrange
       const [exampleMutant] = exampleMutants;
       handler.addMutantToTestExplorer('lets/test/file.ts', exampleMutant);
@@ -122,7 +122,7 @@ suite('testControllerHandler', () => {
       expect(controller.items.size).to.equal(0);
     });
 
-    test('should delete but not touch remaining test items', () => {
+    it('should delete but not touch remaining test items', () => {
       // Arrange
       const [exampleMutant] = exampleMutants;
       handler.addMutantToTestExplorer('lets/test/file_one.ts', exampleMutant);
@@ -145,8 +145,8 @@ suite('testControllerHandler', () => {
     });
   });
 
-  suite('updateTestExplorerFromInstrumentRun', () => {
-    test('should add mutant result at correct place in tree', () => {
+  describe('updateTestExplorerFromInstrumentRun', () => {
+    it('should add mutant result at correct place in tree', () => {
       const [exampleMutant] = exampleMutants;
       const mutantResult: MutantResult = {
         ...exampleMutant,
@@ -165,7 +165,7 @@ suite('testControllerHandler', () => {
       expect(file!.children.size).to.equal(1);
     });
 
-    test('should remove mutants in file test item that are not present in new instrument run result', () => {
+    it('should remove mutants in file test item that are not present in new instrument run result', () => {
       // Arrange
       const originalMutants: MutantResult[] = exampleMutants.map((mutant, index) => ({
         ...mutant,

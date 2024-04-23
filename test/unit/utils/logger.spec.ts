@@ -4,24 +4,24 @@ import * as vscode from 'vscode';
 
 import { Logger } from '../../../src/utils/logger';
 
-suite('Logger', function () {
+describe('Logger', function () {
   let createOutputChannelStub: sinon.SinonStub;
   let outputChannelMock: { appendLine: sinon.SinonStub };
   const sandbox: sinon.SinonSandbox = sinon.createSandbox();
 
-  setup(() => {
+  beforeEach(() => {
     createOutputChannelStub = sandbox.stub(vscode.window, 'createOutputChannel');
     outputChannelMock = createMockOutputChannel();
     createOutputChannelStub.returns(outputChannelMock);
   });
 
-  teardown(() => {
+  afterEach(() => {
     createOutputChannelStub.restore();
     sandbox.restore();
   });
 
-  suite('logError', () => {
-    test('should append error message to output channel', () => {
+  describe('logError', () => {
+    it('should append error message to output channel', () => {
       const errorMessage = 'Test error message';
       new Logger().logError(errorMessage);
 
@@ -29,8 +29,8 @@ suite('Logger', function () {
     });
   });
 
-  suite('logInfo', () => {
-    test('should append info message to output channel', () => {
+  describe('logInfo', () => {
+    it('should append info message to output channel', () => {
       const infoMessage = 'Test info message';
       new Logger().logInfo(infoMessage);
 
@@ -38,8 +38,8 @@ suite('Logger', function () {
     });
   });
 
-  suite('errorNotification', () => {
-    test('should show error message notification', () => {
+  describe('errorNotification', () => {
+    it('should show error message notification', () => {
       const errorMessage = 'Test error message';
 
       const spy = sandbox.spy(vscode.window, 'showErrorMessage');
@@ -50,8 +50,8 @@ suite('Logger', function () {
     });
   });
 
-  suite('infoNotification', () => {
-    test('should show info message notification', () => {
+  describe('infoNotification', () => {
+    it('should show info message notification', () => {
       const infoMessage = 'Test info message';
 
       const spy = sandbox.spy(vscode.window, 'showInformationMessage');
@@ -62,8 +62,8 @@ suite('Logger', function () {
     });
   });
 
-  suite('warningNotification', () => {
-    test('should show warning message notification', () => {
+  describe('warningNotification', () => {
+    it('should show warning message notification', () => {
       const warningMessage = 'Test warning message';
 
       const spy = sandbox.spy(vscode.window, 'showWarningMessage');
