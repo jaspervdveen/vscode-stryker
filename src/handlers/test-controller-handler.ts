@@ -61,7 +61,7 @@ export class TestControllerHandler {
     let currentUri = '';
 
     directories.forEach((directory, index) => {
-      currentUri += `${index === 0 ? '/' : ''}${directory}`;
+      currentUri += `/${directory}`;
 
       let childNode = currentNode.get(directory);
 
@@ -99,15 +99,8 @@ export class TestControllerHandler {
 
       const testItem = this.findFileTestItemByPath(relativeFilePath);
 
-      if (testItem) {
-        // Remove mutants in Test Explorer that are not existent in the new instrument result
-        for (const [id] of testItem.children) {
-          const mutantResult = mutants.find((mutant) => this.getMutantId(mutant) === id);
-          if (!mutantResult) {
-            testItem.children.delete(id);
-          }
-        }
-      }
+      // Remove mutants that are not present in the new instrument run result
+      testItem?.children.replace([]);
 
       mutants.forEach((mutant) => {
         this.addMutantToTestExplorer(relativeFilePath, mutant);

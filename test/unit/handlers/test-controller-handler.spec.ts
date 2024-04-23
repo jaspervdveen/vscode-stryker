@@ -5,21 +5,44 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 import { TestControllerHandler } from '../../../src/handlers/test-controller-handler';
+import { MutantResult } from '../../api/mutant-result';
 
 suite('testControllerHandler', () => {
   let controller: vscode.TestController;
   let handler: TestControllerHandler;
 
-  const exampleMutant: schema.MutantResult = {
-    id: '1',
-    location: {
-      start: { line: 8, column: 4 },
-      end: { line: 6, column: 10 },
+  const exampleMutants: schema.MutantResult[] = [
+    {
+      id: '1',
+      location: {
+        start: { line: 8, column: 4 },
+        end: { line: 6, column: 10 },
+      },
+      mutatorName: 'ArrayDeclaration',
+      replacement: '[]',
+      status: 'Pending',
     },
-    mutatorName: 'ArrayDeclaration',
-    replacement: '[]',
-    status: 'Pending',
-  };
+    {
+      id: '2',
+      location: {
+        start: { line: 4, column: 2 },
+        end: { line: 4, column: 4 },
+      },
+      mutatorName: 'BlockStatement',
+      replacement: '{}',
+      status: 'Pending',
+    },
+    {
+      id: '3',
+      location: {
+        start: { line: 6, column: 2 },
+        end: { line: 6, column: 4 },
+      },
+      mutatorName: 'StringLiteral',
+      replacement: "''",
+      status: 'Pending',
+    },
+  ];
 
   beforeEach(() => {
     controller = vscode.tests.createTestController('name', 'displayName');
@@ -33,6 +56,7 @@ suite('testControllerHandler', () => {
   suite('addMutantToTestExplorer', () => {
     test('should add test item at correct place in tree', () => {
       // Arrange
+      const [exampleMutant] = exampleMutants;
       const filePath = 'lets/test/file.ts';
 
       // Act
@@ -50,6 +74,7 @@ suite('testControllerHandler', () => {
     test('should add mutant with correct properties', () => {
       // Arrange
       const filePath = 'lets/test/file.ts';
+      const [exampleMutant] = exampleMutants;
 
       // Act
       const addedTestItem = handler.addMutantToTestExplorer(filePath, exampleMutant);
@@ -59,9 +84,7 @@ suite('testControllerHandler', () => {
       expect(addedTestItem.label).to.equal(
         `${exampleMutant.mutatorName} (${exampleMutant.location.start.line}:${exampleMutant.location.start.column})`,
       );
-      expect(addedTestItem.id).to.equal(
-        `${exampleMutant.mutatorName}(${exampleMutant.location.start.line}:${exampleMutant.location.start.column}-${exampleMutant.location.end.line}:${exampleMutant.location.end.column}) (${exampleMutant.replacement})`,
-      );
+      expect(addedTestItem.id).to.equal(createMutantId(exampleMutant));
       expect(addedTestItem.range).to.deep.equal(
         new vscode.Range(
           new vscode.Position(exampleMutant.location.start.line - 1, exampleMutant.location.start.column - 1),
@@ -90,6 +113,7 @@ suite('testControllerHandler', () => {
   suite('deleteFromTestExplorer', () => {
     test('should delete path from test explorer and parent directories without tests', () => {
       // Arrange
+      const [exampleMutant] = exampleMutants;
       handler.addMutantToTestExplorer('lets/test/file.ts', exampleMutant);
 
       // Act
@@ -101,6 +125,7 @@ suite('testControllerHandler', () => {
 
     test('should delete but not touch remaining test items', () => {
       // Arrange
+      const [exampleMutant] = exampleMutants;
       handler.addMutantToTestExplorer('lets/test/file_one.ts', exampleMutant);
       handler.addMutantToTestExplorer('lets/test/file_two.ts', exampleMutant);
       handler.addMutantToTestExplorer('lets/file_three.ts', exampleMutant);
@@ -120,4 +145,58 @@ suite('testControllerHandler', () => {
       expect(fileThree!.children.size).to.equal(1);
     });
   });
+
+  suite('updateTestExplorerFromInstrumentRun', () => {
+    test('should add mutant result at correct place in tree', () => {
+      const [exampleMutant] = exampleMutants;
+      const mutantResult: MutantResult = {
+        ...exampleMutant,
+        fileName: 'folder1/folder2/file.ts',
+        replacement: '[]',
+      };
+
+      handler.updateTestExplorerFromInstrumentRun([mutantResult]);
+
+      const folder1 = controller.items.get('folder1');
+      expect(folder1).to.not.be.undefined;
+      const folder2 = folder1!.children.get('folder2');
+      expect(folder2).to.not.be.undefined;
+      const file = folder2!.children.get('file.ts');
+      expect(file).to.not.be.undefined;
+      expect(file!.children.size).to.equal(1);
+    });
+
+    test('should remove mutants in file test item that are not present in new instrument run result', () => {
+      // Arrange
+      const originalMutants: MutantResult[] = exampleMutants.map((mutant, index) => ({
+        ...mutant,
+        fileName: 'folder1/folder2/file.ts',
+        replacement: '[]',
+      }));
+
+      // Simulate that the second mutant is not present in the new instrument run result
+      const instrumentResults = [originalMutants[0], originalMutants[2]];
+
+      originalMutants.forEach((mutant) => handler.addMutantToTestExplorer(mutant.fileName, mutant));
+
+      // Act
+      handler.updateTestExplorerFromInstrumentRun(instrumentResults);
+
+      // Assert
+      const folder1 = controller.items.get('folder1');
+      expect(folder1).to.not.be.undefined;
+      const folder2 = folder1!.children.get('folder2');
+      expect(folder2).to.not.be.undefined;
+      const file = folder2!.children.get('file.ts');
+      expect(file).to.not.be.undefined;
+      expect(file!.children.size).to.equal(2);
+      const mutants = file!.children;
+      const removedMutant = mutants.get(createMutantId(originalMutants[1]));
+      expect(removedMutant).to.be.undefined;
+    });
+  });
+
+  function createMutantId(mutant: schema.MutantResult): string {
+    return `${mutant.mutatorName}(${mutant.location.start.line}:${mutant.location.start.column}-${mutant.location.end.line}:${mutant.location.end.column}) (${mutant.replacement})`;
+  }
 });
