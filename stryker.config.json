@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "packageManager": "npm",
+  "reporters": [
+    "html",
+    "clear-text",
+    "progress"
+  ],
+  "testRunner": "command",
+  "concurrency": 1, 
+  "commandRunner": {
+    "command": "vscode-test"
+  }, 
+  "logLevel": "trace",
+  "coverageAnalysis": "off",
+  "buildCommand": "tsc -b"
+}
