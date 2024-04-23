@@ -1,0 +1,24 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "typescript.tsdk": "parent/node_modules/typescript/lib",
+        "search.exclude": {
+          "**/node_modules": true,
+          "**/CHANGELOG.md": true,
+        },
+        "files.exclude": {
+          "**/.git": true,
+          "package-lock.json": true,
+        },
+        "eslint.validate": ["javascript", "typescript"],
+        "eslint.rules.customizations": [{ "rule": "*", "severity": "warn" }],
+        "task.autoDetect": "off",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+      }
+}

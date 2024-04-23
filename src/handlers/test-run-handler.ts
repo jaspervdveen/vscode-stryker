@@ -1,7 +1,7 @@
 import { statSync } from 'fs';
 
 import * as vscode from 'vscode';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuid } from 'uuid';
 
 import { config } from '../config';
 import { MutationServer } from '../mutation-server/mutation-server';
@@ -41,7 +41,7 @@ export class TestRunHandler {
     try {
       const mutateParams: MutateParams = {
         globPatterns: globPatterns,
-        partialResultToken: uuidv4(),
+        partialResultToken: uuid(),
       };
 
       await this.mutationServer.mutate(mutateParams, async (partialResult) => {
