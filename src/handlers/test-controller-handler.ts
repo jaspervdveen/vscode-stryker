@@ -14,10 +14,6 @@ export class TestControllerHandler {
     this.testController.invalidateTestResults();
   }
 
-  private getMutantId(mutant: schema.MutantResult): string {
-    return `${mutant.mutatorName}(${mutant.location.start.line}:${mutant.location.start.column}-${mutant.location.end.line}:${mutant.location.end.column}) (${mutant.replacement})`;
-  }
-
   private deletePathFromTestExplorer(path: string): void {
     const directories = path.split('/');
 
@@ -48,7 +44,7 @@ export class TestControllerHandler {
         this.testController.items.delete(parent.id);
         break;
       }
-      parentParent?.children.delete(parent.id);
+      parentParent.children.delete(parent.id);
       parent = parentParent;
     }
   }
@@ -60,7 +56,7 @@ export class TestControllerHandler {
 
     let currentUri = '';
 
-    directories.forEach((directory, index) => {
+    directories.forEach((directory) => {
       currentUri += `/${directory}`;
 
       let childNode = currentNode.get(directory);

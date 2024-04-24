@@ -64,8 +64,12 @@ describe('testControllerHandler', () => {
       // Assert
       const letsDirectory = controller.items.get('lets');
       expect(letsDirectory).to.not.be.undefined;
+      expect(letsDirectory!.uri).to.not.be.undefined;
+      expect(vscode.workspace.asRelativePath(letsDirectory!.uri!)).to.deep.equal('lets');
       const testDirectory = letsDirectory?.children.get('test');
       expect(testDirectory).to.not.be.undefined;
+      expect(testDirectory!.uri).to.not.be.undefined;
+      expect(vscode.workspace.asRelativePath(testDirectory!.uri!)).to.deep.equal('lets/test');
       const fileItem = testDirectory?.children.get('file.ts');
       expect(fileItem).to.not.be.undefined;
     });
@@ -167,7 +171,7 @@ describe('testControllerHandler', () => {
 
     it('should remove mutants in file test item that are not present in new instrument run result', () => {
       // Arrange
-      const originalMutants: MutantResult[] = exampleMutants.map((mutant, index) => ({
+      const originalMutants: MutantResult[] = exampleMutants.map((mutant) => ({
         ...mutant,
         fileName: 'folder1/folder2/file.ts',
         replacement: '[]',
