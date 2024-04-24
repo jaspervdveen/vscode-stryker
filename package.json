@@ -47,7 +47,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "vscode-test",
-    "stryker": "stryker run"
+    "stryker": "xvfb-run -a stryker run"
   },
   "devDependencies": {
     "@stryker-mutator/mocha-runner": "^8.2.6",
