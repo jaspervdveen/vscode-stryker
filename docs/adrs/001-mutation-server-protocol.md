@@ -33,18 +33,18 @@ The Mutation Server Protocol was chosen for the following reasons:
 ### Use existing CLI infrastructure
 This approach involves invoking the Stryker's CLI from within the IDE's extension. The extension would spawn a child process of the Stryker CLI executable (platform-specific), passing configuration options via command-line arguments. Once the mutation testing run is complete, the extension would collect the results either through existing reporters provided by Stryker or by implementing new reporters.
 
-* Good, because it utilizes existing CLI infrastructure.
-* Bad, because it requires modifications to Stryker's public API to accommodate new functionalities such as an instrument run, increasing complexity.
-* Bad, because platform-specific implementations are needed for different Stryker versions, leading to potential compatibility issues and introducing a m-times-n complexity problem.
-* Bad, no ability to improve performance by keeping processes in memory.
+* Pro: it utilizes existing CLI infrastructure.
+* Con: it requires modifications to Stryker's public API to accommodate new functionalities such as an instrument run, increasing complexity.
+* Con: platform-specific implementations are needed for different Stryker versions, leading to potential compatibility issues and introducing a m-times-n complexity problem.
+* Con: no ability to improve performance by keeping processes in memory.
 
 ### Communicate via Mutation Server Protocol
 
 This option involves establishing a Mutation Server Protocol, akin to the Language Server Protocol, for communication between the IDE extension and the mutation testing framework. The protocol utilizes JSON-RPC 2.0 messages for communication. 
 
-* Good, because it reduce the m-times-n complexity problem of providing support for any mutation testing framework in any IDE to a simpler m-plus-n problem.
-* Good, because it eliminates the need for framework-specific implementations, enhancing compatibility.
-* Good, because there is potential for improved performance by keeping processes in memory on the server-side.
-* Good, because it does not require changes to existing public APIs, ensuring compatibility with current infrastructure.
-* Bad, because initial implementation overhead may be higher compared to utilizing existing CLI commands.
-* Bad, because it requires the development of a protocol and associated infrastructure.
+* Pro: it reduce the m-times-n complexity problem of providing support for any mutation testing framework in any IDE to a simpler m-plus-n problem.
+* Pro: it eliminates the need for framework-specific implementations, enhancing compatibility.
+* Pro: there is potential for improved performance by keeping processes in memory on the server-side.
+* Pro: it does not require changes to existing public APIs, ensuring compatibility with current infrastructure.
+* Con: initial implementation overhead may be higher compared to utilizing existing CLI commands.
+* Con: it requires the development of a protocol and associated infrastructure.
