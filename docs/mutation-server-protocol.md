@@ -124,7 +124,7 @@ interface NotificationMessage extends Message {
 ```
 
 ### Progress Support
-The base protocol offers also support to report progress in a generic fashion. This mechanism can be used to report partial result progress to support streaming of results.
+The base protocol offers support to report progress in a generic fashion. This mechanism can be used to report partial result progress to support streaming of results.
 
 A progress notification has the following properties:
 
