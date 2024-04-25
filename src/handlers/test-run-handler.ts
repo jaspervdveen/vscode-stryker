@@ -17,10 +17,10 @@ export class TestRunHandler {
     private readonly mutationServer: MutationServer,
     private readonly testControllerHandler: TestControllerHandler,
   ) {
-    this.testController.createRunProfile('Mutation', vscode.TestRunProfileKind.Run, (request) => this.mutationRunHandler(request));
+    this.testController.createRunProfile('Mutation', vscode.TestRunProfileKind.Run, (request, token) => this.mutationRunHandler(request, token));
   }
 
-  public async mutationRunHandler(request: vscode.TestRunRequest): Promise<void> {
+  public async mutationRunHandler(request: vscode.TestRunRequest, token: vscode.CancellationToken): Promise<void> {
     const run = this.testController.createTestRun(request, config.app.name, true);
 
     const queue: vscode.TestItem[] = request.include ? [...request.include] : [...this.testController.items].map(([_, testItem]) => testItem);
@@ -44,9 +44,13 @@ export class TestRunHandler {
         partialResultToken: uuid(),
       };
 
-      await this.mutationServer.mutate(mutateParams, async (partialResult) => {
-        await this.handleResult(partialResult.mutants, run);
-      });
+      await this.mutationServer.mutate(
+        mutateParams,
+        async (partialResult) => {
+          await this.handleResult(partialResult.mutants, run);
+        },
+        token,
+      );
     } catch (error: any) {
       const errorMessage: string = error.toString();
       run.appendOutput(errorMessage);

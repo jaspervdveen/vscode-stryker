@@ -1,7 +1,7 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 
 import { ProgressLocation, window } from 'vscode';
-import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from 'json-rpc-2.0';
+import { JSONRPC, JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from 'json-rpc-2.0';
 import { WebSocket, Data } from 'ws';
 import * as vscode from 'vscode';
 import { Subject, filter, map } from 'rxjs';
@@ -16,6 +16,9 @@ export class MutationServer {
   private readonly process: ChildProcessWithoutNullStreams;
   private rpcClient: TypedJSONRPCClient<MutationServerMethods> | undefined;
   private webSocket: WebSocket | undefined;
+
+  private nextID = 1;
+  private readonly createID = () => this.nextID++;
 
   private readonly notification$Subject = new Subject<JSONRPCRequest>();
   public progressNotification$ = this.notification$Subject.pipe(
@@ -73,7 +76,7 @@ export class MutationServer {
     this.rpcClient = new JSONRPCClient(async (jsonRpcRequest: JSONRPCRequest) => {
       await this.waitForOpenSocket(this.webSocket!);
       this.webSocket!.send(JSON.stringify(jsonRpcRequest));
-    });
+    }, this.createID);
   }
 
   public async instrument(params: InstrumentParams): Promise<MutantResult[]> {
@@ -94,7 +97,11 @@ export class MutationServer {
     );
   }
 
-  public async mutate(params: MutateParams, onPartialResult: (partialResult: MutatePartialResult) => void): Promise<void> {
+  public async mutate(
+    params: MutateParams,
+    onPartialResult: (partialResult: MutatePartialResult) => void,
+    token: vscode.CancellationToken,
+  ): Promise<void> {
     return await window.withProgress(
       {
         location: ProgressLocation.Window,
@@ -113,7 +120,18 @@ export class MutationServer {
           )
           .subscribe(onPartialResult);
 
-        await this.rpcClient.request('mutate', params);
+        const requestId = this.createID();
+
+        token.onCancellationRequested(() => {
+          this.rpcClient!.notify('cancelRequest', { id: requestId });
+        });
+
+        await this.rpcClient.requestAdvanced({
+          jsonrpc: JSONRPC,
+          id: requestId,
+          method: 'mutate',
+          params: params,
+        });
       },
     );
   }
