@@ -31,9 +31,9 @@
           },
           "stryker-mutator.mutationServerPort": {
             "type": "number",
-            "default": 8080,
-            "description": "The port of the mutation WebSocket server.",
-            "minimum": 1,
+            "default": 0,
+            "description": "The port of the mutation WebSocket server. 0 means a random port.",
+            "minimum": 0,
             "maximum": 65535
           }
         }

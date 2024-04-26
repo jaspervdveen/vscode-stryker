@@ -34,8 +34,11 @@ export class MutationServer {
       throw new Error(config.errors.mutationServerExecutablePathNotSet);
     }
 
-    const mutationServerPort = workspaceConfig.get('mutationServerPort') ?? 8080;
-    const args = ['--port', mutationServerPort.toString()];
+    const mutationServerPort: number | undefined = workspaceConfig.get('mutationServerPort');
+    const args: string[] = [];
+    if (mutationServerPort) {
+      args.push('--port', mutationServerPort.toString());
+    }
 
     this.process = spawn(mutationServerExecutablePath, args, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
 
@@ -67,8 +70,8 @@ export class MutationServer {
   }
 
   private async connect(): Promise<void> {
-    await this.waitForMutationServerStarted();
-    this.connectViaWebSocket();
+    const port = await this.waitForMutationServerStarted();
+    this.connectViaWebSocket(port);
 
     this.rpcClient = new JSONRPCClient(async (jsonRpcRequest: JSONRPCRequest) => {
       await this.waitForOpenSocket(this.webSocket!);
@@ -118,16 +121,8 @@ export class MutationServer {
     );
   }
 
-  private connectViaWebSocket() {
-    const workspaceConfig = vscode.workspace.getConfiguration(config.app.name);
-    const mutationServerPort: number | undefined = workspaceConfig.get('mutationServerPort');
-
-    if (!mutationServerPort) {
-      this.logger.logError(config.errors.mutationServerPortNotSet);
-      throw new Error(config.errors.mutationServerPortNotSet);
-    }
-
-    this.webSocket = new WebSocket(`ws://localhost:${mutationServerPort}`);
+  private connectViaWebSocket(port: number) {
+    this.webSocket = new WebSocket(`ws://localhost:${port}`);
 
     this.webSocket.on('message', (data: Data) => {
       let response: JSONRPCRequest | JSONRPCResponse | undefined;
@@ -168,11 +163,13 @@ export class MutationServer {
     });
   };
 
-  private readonly waitForMutationServerStarted = async (): Promise<void> => {
-    await new Promise<void>((resolve) => {
+  private readonly waitForMutationServerStarted = async (): Promise<number> => {
+    return await new Promise<number>((resolve) => {
       this.process.stdout.on('data', (data) => {
-        if (data.toString().includes('Server started')) {
-          resolve();
+        const dataString: string = data.toString();
+        const port = /Server is listening on port: (\d+)/.exec(dataString);
+        if (port) {
+          resolve(parseInt(port[1], 10));
         }
       });
     });
