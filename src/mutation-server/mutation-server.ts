@@ -2,15 +2,14 @@ import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } fr
 import { ProgressLocation, window } from 'vscode';
 import { Subject, filter, map } from 'rxjs';
 
-import { config } from '../config';
+import { config } from '../config.js';
 import { MutantResult } from '../api/mutant-result.js';
+import { Logger } from '../utils/logger.js';
 
-import { Logger } from '../utils/logger';
+import { InstrumentParams, MutateParams, MutatePartialResult, MutationServerMethods, ProgressParams } from './mutation-server-protocol.js';
+import { Transporter } from './transport/transporter.js';
 
-import { InstrumentParams, MutateParams, MutatePartialResult, MutationServerMethods, ProgressParams } from './mutation-server-protocol';
-import { Transporter } from './transport/transporter';
-
-export class MutationServerProtocolHandler {
+export class MutationServer {
   private readonly rpcClient: TypedJSONRPCClient<MutationServerMethods>;
   private readonly notification$Subject = new Subject<JSONRPCRequest>();
   private readonly progressNotification$ = this.notification$Subject.pipe(

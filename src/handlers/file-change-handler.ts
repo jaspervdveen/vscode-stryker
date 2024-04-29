@@ -2,11 +2,9 @@ import { Subject, buffer, debounceTime } from 'rxjs';
 import * as vscode from 'vscode';
 
 import { config } from '../config';
-
 import { Logger } from '../utils/logger';
 import { pathUtils } from '../utils/path-utils';
-
-import { MutationServerProtocolHandler } from '../mutation-server/mutation-server-protocol-handler';
+import { MutationServer } from '../mutation-server/mutation-server.js';
 
 import { TestControllerHandler } from './test-controller-handler';
 
@@ -18,7 +16,7 @@ export class FileChangeHandler {
   private readonly deletedFilePath$ = this.deletedFilePath$Subject.asObservable();
 
   private constructor(
-    private readonly protocolHandler: MutationServerProtocolHandler,
+    private readonly mutationServer: MutationServer,
     private readonly testControllerHandler: TestControllerHandler,
     private readonly logger: Logger,
     private readonly workspaceFolder: vscode.WorkspaceFolder,
@@ -35,12 +33,12 @@ export class FileChangeHandler {
   }
 
   public static async create(
-    protocolHandler: MutationServerProtocolHandler,
+    mutationServer: MutationServer,
     testControllerHandler: TestControllerHandler,
     logger: Logger,
     workspaceFolder: vscode.WorkspaceFolder,
   ): Promise<FileChangeHandler> {
-    const handler = new FileChangeHandler(protocolHandler, testControllerHandler, logger, workspaceFolder);
+    const handler = new FileChangeHandler(mutationServer, testControllerHandler, logger, workspaceFolder);
     await handler.createFileWatchers();
     return handler;
   }
@@ -57,7 +55,7 @@ export class FileChangeHandler {
 
     try {
       // Instrument files to detect changes
-      const instrumentResult = await this.protocolHandler.instrument({ globPatterns: filteredPaths });
+      const instrumentResult = await this.mutationServer.instrument({ globPatterns: filteredPaths });
 
       this.testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentResult);
     } catch (error: any) {

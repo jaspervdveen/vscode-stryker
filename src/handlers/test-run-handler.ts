@@ -8,14 +8,14 @@ import { pathUtils } from '../utils/path-utils';
 import { MutantResult } from '../api/mutant-result';
 import { MutateParams } from '../mutation-server/mutation-server-protocol';
 
-import { MutationServerProtocolHandler } from '../mutation-server/mutation-server-protocol-handler';
+import { MutationServer } from '../mutation-server/mutation-server.js';
 
 import { TestControllerHandler } from './test-controller-handler';
 
 export class TestRunHandler {
   constructor(
     private readonly testController: vscode.TestController,
-    private readonly protocolHandler: MutationServerProtocolHandler,
+    private readonly protocolHandler: MutationServer,
     private readonly testControllerHandler: TestControllerHandler,
   ) {
     this.testController.createRunProfile('Mutation', vscode.TestRunProfileKind.Run, (request) => this.mutationRunHandler(request));
