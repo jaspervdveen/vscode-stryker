@@ -1,42 +1,35 @@
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
-
 import * as vscode from 'vscode';
 
 import { config } from '../config.js';
 import { Logger } from '../utils/logger.js';
-import { WebSocketTransporter } from '../mutation-server/transport/web-socket-transporter.js';
 import { MutationServer } from '../mutation-server/mutation-server.js';
 import { MutantResult } from '../api/mutant-result.js';
+import { MutationServerFactory } from '../mutation-server/mutation-server-factory.js';
 
 import { TestRunHandler } from './test-run-handler.js';
 import { FileChangeHandler } from './file-change-handler.js';
 import { TestControllerHandler } from './test-controller-handler.js';
 
 export class WorkspaceHandler {
+  private readonly mutationServerFactory: MutationServerFactory;
+
   constructor(private readonly logger: Logger) {
-    // Setup mutation server and handlers for each root folder in the workspace
+    this.mutationServerFactory = new MutationServerFactory(logger);
+
+    // Setup each root folder in the workspace
     vscode.workspace.workspaceFolders?.forEach(async (folder) => {
       try {
-        const mutationServer = await this.setupMutationServer(folder);
-        await this.setupHandlers(mutationServer, folder);
+        await this.setupWorkspaceFolder(folder);
       } catch {
         logger.logError(config.errors.workspaceFolderSetupFailed);
       }
     });
   }
 
-  private async setupMutationServer(workspaceFolder: vscode.WorkspaceFolder): Promise<MutationServer> {
-    // Spawn the mutation server process
-    const mutationServerProcess = this.spawnMutationServerProcess(workspaceFolder);
+  private async setupWorkspaceFolder(workspaceFolder: vscode.WorkspaceFolder) {
+    // Create a mutation server for the workspace folder
+    const mutationServer = await this.mutationServerFactory.create(workspaceFolder);
 
-    // Setup a transporter to communicate with the mutation server process
-    const transporter = await WebSocketTransporter.create(mutationServerProcess);
-
-    // Create a handler for communication with the mutation server via the protocol
-    return new MutationServer(transporter, this.logger);
-  }
-
-  private async setupHandlers(mutationServer: MutationServer, workspaceFolder: vscode.WorkspaceFolder): Promise<void> {
     // Create a test controller and its corresponding handler
     const testController = vscode.tests.createTestController(workspaceFolder.name, workspaceFolder.name);
     const testControllerHandler = new TestControllerHandler(testController, workspaceFolder);
@@ -48,6 +41,10 @@ export class WorkspaceHandler {
     new TestRunHandler(testController, mutationServer, testControllerHandler);
 
     // Run initial instrumentation to fill the test explorer with tests
+    await this.runInitialInstrumentation(mutationServer, testControllerHandler);
+  }
+
+  private async runInitialInstrumentation(mutationServer: MutationServer, testControllerHandler: TestControllerHandler): Promise<void> {
     let instrumentationResult: MutantResult[] = [];
 
     try {
@@ -58,28 +55,6 @@ export class WorkspaceHandler {
       this.logger.logError(errorMessage);
     }
 
-    // Update the test explorer with the results of the instrumentation
     testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentationResult);
-  }
-
-  private spawnMutationServerProcess(workspaceFolder: vscode.WorkspaceFolder): ChildProcessWithoutNullStreams {
-    const workspaceFolderConfig = vscode.workspace.getConfiguration(config.app.name, workspaceFolder);
-    const mutationServerExecutablePath: string | undefined = workspaceFolderConfig.get('mutationServerExecutablePath');
-
-    if (!mutationServerExecutablePath) {
-      throw new Error(config.errors.mutationServerExecutablePathNotSet);
-    }
-
-    const process = spawn(mutationServerExecutablePath, { cwd: workspaceFolder.uri.fsPath });
-
-    if (process.pid === undefined) {
-      throw new Error(config.errors.mutationServerProcessSpawnFailed);
-    }
-
-    process.stdout.on('data', (data: string) => this.logger.logInfo(data));
-    process.stderr.on('error', (error) => this.logger.logError(error.toString()));
-    process.on('exit', (code: number | null) => this.logger.logInfo(`Server process exited with code ${code}`));
-
-    return process;
   }
 }
