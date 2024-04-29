@@ -6,7 +6,6 @@ import { config } from '../config.js';
 import { Logger } from '../utils/logger.js';
 import { WebSocketTransporter } from '../mutation-server/transport/web-socket-transporter.js';
 import { MutationServer } from '../mutation-server/mutation-server.js';
-import { Transporter } from '../mutation-server/transport/transporter.js';
 import { MutantResult } from '../api/mutant-result.js';
 
 import { TestRunHandler } from './test-run-handler.js';
@@ -30,10 +29,8 @@ export class WorkspaceHandler {
     // Spawn the mutation server process
     const mutationServerProcess = this.spawnMutationServerProcess(workspaceFolder);
 
-    // Setup message communication with the mutation server via a WebSocket connection
-    const port = await this.getMutationServerPort(mutationServerProcess, config.app.serverStartTimeoutMs);
-    const transporter: Transporter = new WebSocketTransporter(port);
-    await this.waitForConnectionEstablished(transporter);
+    // Setup a transporter to communicate with the mutation server process
+    const transporter = await WebSocketTransporter.create(mutationServerProcess);
 
     // Create a handler for communication with the mutation server via the protocol
     return new MutationServer(transporter, this.logger);
@@ -65,17 +62,6 @@ export class WorkspaceHandler {
     testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentationResult);
   }
 
-  private async waitForConnectionEstablished(transporter: Transporter): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      setTimeout(() => {
-        reject(new Error(config.errors.mutationServerStartTimeoutReached));
-      }, config.app.serverStartTimeoutMs);
-
-      transporter.on('connected', () => resolve());
-      transporter.on('error', (error) => reject(new Error(`Failed to establish connection: ${error}`)));
-    });
-  }
-
   private spawnMutationServerProcess(workspaceFolder: vscode.WorkspaceFolder): ChildProcessWithoutNullStreams {
     const workspaceFolderConfig = vscode.workspace.getConfiguration(config.app.name, workspaceFolder);
     const mutationServerExecutablePath: string | undefined = workspaceFolderConfig.get('mutationServerExecutablePath');
@@ -95,22 +81,5 @@ export class WorkspaceHandler {
     process.on('exit', (code: number | null) => this.logger.logInfo(`Server process exited with code ${code}`));
 
     return process;
-  }
-
-  private async getMutationServerPort(mutationServerProcess: ChildProcessWithoutNullStreams, timeout: number): Promise<number> {
-    return await new Promise<number>((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error(config.errors.mutationServerStartTimeoutReached));
-      }, timeout);
-
-      mutationServerProcess.stdout.on('data', (data) => {
-        const dataString: string = data.toString();
-        const port = /Server is listening on port: (\d+)/.exec(dataString);
-        if (port) {
-          clearTimeout(timeoutId);
-          resolve(parseInt(port[1], 10));
-        }
-      });
-    });
   }
 }
