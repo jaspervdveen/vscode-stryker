@@ -1,144 +1,177 @@
-import { ProgressLocation, window } from "vscode";
-import { config } from "../config.js";
-import { Logger } from "../utils/logger.js";
-import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from "json-rpc-2.0";
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+
+import { ProgressLocation, window } from 'vscode';
+import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from 'json-rpc-2.0';
 import { WebSocket, Data } from 'ws';
-import { ChildProcessWithoutNullStreams, spawn } from "child_process";
-import { MutationServerMethods } from "./mutation-server-methods.js";
 import * as vscode from 'vscode';
-import { MutantResult } from "../api/mutant-result.js";
+import { Subject, filter, map } from 'rxjs';
+
+import { MutantResult } from '../api/mutant-result.js';
+import { Logger } from '../utils/logger.js';
+import { config } from '../config.js';
+
+import { InstrumentParams, MutateParams, MutatePartialResult, MutationServerMethods, ProgressParams } from './mutation-server-methods.js';
 
 export class MutationServer {
-    private process: ChildProcessWithoutNullStreams;
-    private rpcClient: TypedJSONRPCClient<MutationServerMethods> | undefined;
-    private webSocket: WebSocket | undefined;
+  private readonly process: ChildProcessWithoutNullStreams;
+  private rpcClient: TypedJSONRPCClient<MutationServerMethods> | undefined;
+  private webSocket: WebSocket | undefined;
 
-    constructor(private logger: Logger) {
-        // Start the mutation server
-        const workspaceConfig = vscode.workspace.getConfiguration(config.app.name);
+  private readonly notification$Subject = new Subject<JSONRPCRequest>();
+  public progressNotification$ = this.notification$Subject.pipe(
+    filter((request) => request.method === 'progress'),
+    map((request) => request.params as ProgressParams<any>),
+  );
 
-        const mutationServerExecutablePath: string | undefined = workspaceConfig.get('mutationServerExecutablePath');
+  private constructor(private readonly logger: Logger) {
+    // Start the mutation server
+    const workspaceConfig = vscode.workspace.getConfiguration(config.app.name);
 
-        if (!mutationServerExecutablePath) {
-            logger.logError(config.errors.mutationServerExecutablePathNotSet);
-            throw new Error(config.errors.mutationServerExecutablePathNotSet);
-        };
+    const mutationServerExecutablePath: string | undefined = workspaceConfig.get('mutationServerExecutablePath');
 
-        const mutationServerPort = workspaceConfig.get('mutationServerPort') ?? 8080;
-        const args = ['--port', mutationServerPort.toString()];
+    if (!mutationServerExecutablePath) {
+      logger.logError(config.errors.mutationServerExecutablePathNotSet);
+      throw new Error(config.errors.mutationServerExecutablePathNotSet);
+    }
 
-        this.process = spawn(mutationServerExecutablePath, args, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
+    const mutationServerPort: number | undefined = workspaceConfig.get('mutationServerPort');
+    const args: string[] = [];
+    if (mutationServerPort) {
+      args.push('--port', mutationServerPort.toString());
+    }
 
-        if (this.process.pid === undefined) {
-            logger.logError(`[Mutation Server] Failed to start mutation server with executable path: ${mutationServerExecutablePath} `
-                + `and port: ${mutationServerPort}. These properties can be configured in the extension settings, then reload the window.`);
-            throw new Error(config.errors.mutationServerFailed);
+    this.process = spawn(mutationServerExecutablePath, args, { cwd: vscode.workspace.workspaceFolders![0].uri.fsPath });
+
+    if (this.process.pid === undefined) {
+      logger.logError(
+        `[Mutation Server] Failed to start mutation server with executable path: ${mutationServerExecutablePath} ` +
+          `and port: ${mutationServerPort}. These properties can be configured in the extension settings, then reload the window.`,
+      );
+      throw new Error(config.errors.mutationServerFailed);
+    }
+
+    this.process.on('exit', (code) => {
+      logger.logInfo(`[Mutation Server] Exited with code ${code}`);
+    });
+
+    this.process.stdout.on('data', (data) => {
+      logger.logInfo(`[Mutation Server] ${data.toString()}`);
+    });
+
+    this.process.stderr.on('data', (data) => {
+      logger.logError(`[Mutation Server] ${data.toString()}`);
+    });
+  }
+
+  public static async create(logger: Logger): Promise<MutationServer> {
+    const server = new MutationServer(logger);
+    await server.connect();
+    return server;
+  }
+
+  private async connect(): Promise<void> {
+    const port = await this.waitForMutationServerStarted();
+    this.connectViaWebSocket(port);
+
+    this.rpcClient = new JSONRPCClient(async (jsonRpcRequest: JSONRPCRequest) => {
+      await this.waitForOpenSocket(this.webSocket!);
+      this.webSocket!.send(JSON.stringify(jsonRpcRequest));
+    });
+  }
+
+  public async instrument(params: InstrumentParams): Promise<MutantResult[]> {
+    return await window.withProgress(
+      {
+        location: ProgressLocation.Window,
+        title: config.messages.instrumentationRunning,
+      },
+      async () => {
+        if (!this.rpcClient) {
+          throw new Error('Setup method not called.');
         }
 
-        this.process.on('exit', (code) => {
-            logger.logInfo(`[Mutation Server] Exited with code ${code}`);
-        });
+        const result = await this.rpcClient.request('instrument', params);
 
-        this.process.stdout.on('data', (data) => {
-            logger.logInfo(`[Mutation Server] ${data.toString()}`);
-        });
+        return result;
+      },
+    );
+  }
 
-        this.process.stderr.on('data', (data) => {
-            logger.logError(`[Mutation Server] ${data.toString()}`);
-        });
-    }
-
-    public async connect() {
-        await this.waitForMutationServerStarted();
-        this.connectViaWebSocket();
-
-        this.rpcClient = new JSONRPCClient(async (jsonRpcRequest: JSONRPCRequest) => {
-            await this.waitForOpenSocket(this.webSocket!);
-            this.webSocket!.send(JSON.stringify(jsonRpcRequest));
-        });
-    }
-
-    public async instrument(globPatterns?: string[]): Promise<MutantResult[]> {
-        return await window.withProgress({
-            location: ProgressLocation.Window,
-            title: config.messages.instrumentationRunning,
-        }, async () => {
-            if (!this.rpcClient) {
-                throw new Error('Setup method not called.');
-            }
-
-            const result = await this.rpcClient.request('instrument', { globPatterns: globPatterns });
-
-            return result;
-        });
-    }
-
-    public async mutate(globPatterns?: string[]): Promise<MutantResult[]> {
-        return await window.withProgress({
-            location: ProgressLocation.Window,
-            title: config.messages.mutationTestingRunning,
-            cancellable: true
-        }, async () => {
-            if (!this.rpcClient) {
-                throw new Error('Setup method not called.');
-            }
-
-            const result = await this.rpcClient.request('mutate', { globPatterns: globPatterns });
-
-            return result;
-        });
-    }
-
-    private connectViaWebSocket() {
-        const workspaceConfig = vscode.workspace.getConfiguration(config.app.name);
-        const mutationServerPort: number | undefined = workspaceConfig.get('mutationServerPort');
-
-        if (!mutationServerPort) {
-            this.logger.logError(config.errors.mutationServerPortNotSet);
-            throw new Error(config.errors.mutationServerPortNotSet);
+  public async mutate(params: MutateParams, onPartialResult: (partialResult: MutatePartialResult) => void): Promise<void> {
+    return await window.withProgress(
+      {
+        location: ProgressLocation.Window,
+        title: config.messages.mutationTestingRunning,
+        cancellable: true,
+      },
+      async () => {
+        if (!this.rpcClient) {
+          throw new Error('Setup method not called.');
         }
 
-        this.webSocket = new WebSocket(`ws://localhost:${mutationServerPort}`);
+        this.progressNotification$
+          .pipe(
+            filter((progress: ProgressParams<MutatePartialResult>) => progress.token === params.partialResultToken),
+            map((progress) => progress.value),
+          )
+          .subscribe(onPartialResult);
 
-        this.webSocket.on('message', (data: Data) => {
-            let response: JSONRPCResponse | undefined;
+        await this.rpcClient.request('mutate', params);
+      },
+    );
+  }
 
-            try {
-                response = JSON.parse(data.toString());
-            } catch (error) {
-                this.logger.logError(`Error parsing JSON: ${data.toString()}`);
-            }
+  private connectViaWebSocket(port: number) {
+    this.webSocket = new WebSocket(`ws://localhost:${port}`);
 
-            if (response) {
-                this.rpcClient!.receive(response);
-            }
+    this.webSocket.on('message', (data: Data) => {
+      let response: JSONRPCRequest | JSONRPCResponse | undefined;
+
+      try {
+        response = JSON.parse(data.toString());
+      } catch (error) {
+        this.logger.logError(`Error parsing JSON: ${data.toString()}`);
+        return;
+      }
+
+      if (response) {
+        const isNotification = !response.id;
+
+        if (isNotification) {
+          this.notification$Subject.next(response as JSONRPCRequest);
+        } else {
+          this.rpcClient!.receive(response as JSONRPCResponse);
+        }
+      }
+    });
+
+    this.webSocket.on('error', async (err) => {
+      this.logger.logError(`WebSocket Error: ${err}`);
+      await this.logger.errorNotification(config.errors.mutationServerFailed);
+    });
+  }
+
+  private readonly waitForOpenSocket = (socket: WebSocket): Promise<void> => {
+    return new Promise<void>((resolve) => {
+      if (socket.readyState !== socket.OPEN) {
+        socket.on('open', () => {
+          resolve();
         });
+      } else {
+        resolve();
+      }
+    });
+  };
 
-        this.webSocket.on('error', (err) => {
-            this.logger.logError(`WebSocket Error: ${err}`);
-            this.logger.errorNotification(config.errors.mutationServerFailed);
-        });
-    };
-
-    private waitForOpenSocket = (socket: WebSocket): Promise<void> => {
-        return new Promise<void>((resolve) => {
-            if (socket.readyState !== socket.OPEN) {
-                socket.on("open", () => {
-                    resolve();
-                });
-            } else {
-                resolve();
-            }
-        });
-    };
-
-    private waitForMutationServerStarted = async (): Promise<void> => {
-        await new Promise<void>((resolve) => {
-            this.process.stdout.on('data', (data) => {
-                if (data.toString().includes('Server started')) {
-                    resolve();
-                }
-            });
-        });
-    };
+  private readonly waitForMutationServerStarted = async (): Promise<number> => {
+    return await new Promise<number>((resolve) => {
+      this.process.stdout.on('data', (data) => {
+        const dataString: string = data.toString();
+        const port = /Server is listening on port: (\d+)/.exec(dataString);
+        if (port) {
+          resolve(parseInt(port[1], 10));
+        }
+      });
+    });
+  };
 }
