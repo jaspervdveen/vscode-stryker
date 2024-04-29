@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 
-import { setupWorkspace } from './handlers/workspace-handler';
+import { WorkspaceHandler } from './handlers/workspace-handler';
+import { Logger } from './utils/logger';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  await setupWorkspace();
+  const logger = new Logger();
+  new WorkspaceHandler(logger);
 }
 
 export function deactivate(): void {
