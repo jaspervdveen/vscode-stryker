@@ -3,9 +3,10 @@ import * as vscode from 'vscode';
 
 import { config } from '../config';
 
-import { MutationServer } from '../mutation-server/mutation-server';
 import { Logger } from '../utils/logger';
 import { pathUtils } from '../utils/path-utils';
+
+import { MutationServerProtocolHandler } from '../mutation-server/mutation-server-protocol-handler';
 
 import { TestControllerHandler } from './test-controller-handler';
 
@@ -17,9 +18,10 @@ export class FileChangeHandler {
   private readonly deletedFilePath$ = this.deletedFilePath$Subject.asObservable();
 
   private constructor(
-    private readonly mutationServer: MutationServer,
+    private readonly protocolHandler: MutationServerProtocolHandler,
     private readonly testControllerHandler: TestControllerHandler,
     private readonly logger: Logger,
+    private readonly workspaceFolder: vscode.WorkspaceFolder,
   ) {
     // Changes are buffered to bundle multiple changes into one run
     // and debounced to prevent running while the user is still typing
@@ -33,11 +35,12 @@ export class FileChangeHandler {
   }
 
   public static async create(
-    mutationServer: MutationServer,
+    protocolHandler: MutationServerProtocolHandler,
     testControllerHandler: TestControllerHandler,
     logger: Logger,
+    workspaceFolder: vscode.WorkspaceFolder,
   ): Promise<FileChangeHandler> {
-    const handler = new FileChangeHandler(mutationServer, testControllerHandler, logger);
+    const handler = new FileChangeHandler(protocolHandler, testControllerHandler, logger, workspaceFolder);
     await handler.createFileWatchers();
     return handler;
   }
@@ -54,7 +57,7 @@ export class FileChangeHandler {
 
     try {
       // Instrument files to detect changes
-      const instrumentResult = await this.mutationServer.instrument({ globPatterns: filteredPaths });
+      const instrumentResult = await this.protocolHandler.instrument({ globPatterns: filteredPaths });
 
       this.testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentResult);
     } catch (error: any) {
@@ -71,38 +74,29 @@ export class FileChangeHandler {
   }
 
   private async createFileWatchers() {
-    if (!vscode.workspace.workspaceFolders) {
-      this.logger.logError('No workspace folders found');
-      throw new Error('No workspace folders found');
-    }
+    const pattern = new vscode.RelativePattern(this.workspaceFolder, '{src/**/*,!{**/*.git}'); // TODO: Get from workspace Stryker config
 
-    await Promise.all(
-      vscode.workspace.workspaceFolders.map(async (workspaceFolder) => {
-        const pattern = new vscode.RelativePattern(workspaceFolder, '{src/**/*,!{**/*.git}'); // TODO: Get from workspace Stryker config
+    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
-        const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+    // Called on file/folder creation and file/folder path changes
+    watcher.onDidCreate((uri) => {
+      // If the uri is a folder, match everything in the folder
+      const uriIsFolder = !uri.fsPath.includes('.');
+      if (uriIsFolder) {
+        uri = vscode.Uri.parse(uri.fsPath + '/**/*');
+      }
 
-        // Called on file/folder creation and file/folder path changes
-        watcher.onDidCreate((uri) => {
-          // If the uri is a folder, match everything in the folder
-          const uriIsFolder = !uri.fsPath.includes('.');
-          if (uriIsFolder) {
-            uri = vscode.Uri.parse(uri.fsPath + '/**/*');
-          }
+      this.changedFilePath$Subject.next(uri.fsPath);
+    });
 
-          this.changedFilePath$Subject.next(uri.fsPath);
-        });
+    // Called on file content change
+    watcher.onDidChange((uri) => this.changedFilePath$Subject.next(uri.fsPath));
 
-        // Called on file content change
-        watcher.onDidChange((uri) => this.changedFilePath$Subject.next(uri.fsPath));
+    // Called on file/folder deletion and file/folder path changes
+    watcher.onDidDelete((uri) => {
+      const relativePath = uri.fsPath.replace(this.workspaceFolder.uri.fsPath + '/', '');
 
-        // Called on file/folder deletion and file/folder path changes
-        watcher.onDidDelete((uri) => {
-          const relativePath = uri.fsPath.replace(workspaceFolder.uri.fsPath + '/', '');
-
-          this.deletedFilePath$Subject.next(relativePath);
-        });
-      }),
-    );
+      this.deletedFilePath$Subject.next(relativePath);
+    });
   }
 }

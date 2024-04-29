@@ -4,17 +4,18 @@ import * as vscode from 'vscode';
 import { v4 as uuid } from 'uuid';
 
 import { config } from '../config';
-import { MutationServer } from '../mutation-server/mutation-server';
 import { pathUtils } from '../utils/path-utils';
 import { MutantResult } from '../api/mutant-result';
-import { MutateParams } from '../mutation-server/mutation-server-methods';
+import { MutateParams } from '../mutation-server/mutation-server-protocol';
+
+import { MutationServerProtocolHandler } from '../mutation-server/mutation-server-protocol-handler';
 
 import { TestControllerHandler } from './test-controller-handler';
 
 export class TestRunHandler {
   constructor(
     private readonly testController: vscode.TestController,
-    private readonly mutationServer: MutationServer,
+    private readonly protocolHandler: MutationServerProtocolHandler,
     private readonly testControllerHandler: TestControllerHandler,
   ) {
     this.testController.createRunProfile('Mutation', vscode.TestRunProfileKind.Run, (request) => this.mutationRunHandler(request));
@@ -44,7 +45,7 @@ export class TestRunHandler {
         partialResultToken: uuid(),
       };
 
-      await this.mutationServer.mutate(mutateParams, async (partialResult) => {
+      await this.protocolHandler.mutate(mutateParams, async (partialResult) => {
         await this.handleResult(partialResult.mutants, run);
       });
     } catch (error: any) {
@@ -57,7 +58,7 @@ export class TestRunHandler {
 
   private async handleResult(result: MutantResult[], run: vscode.TestRun) {
     for (const mutantResult of result) {
-      const relativeFilePath = vscode.workspace.asRelativePath(mutantResult.fileName);
+      const relativeFilePath = vscode.workspace.asRelativePath(mutantResult.fileName, false);
 
       const testItem = this.testControllerHandler.addMutantToTestExplorer(relativeFilePath, mutantResult);
 
@@ -84,7 +85,7 @@ export class TestRunHandler {
   private createOutputMessage(mutant: MutantResult): string {
     let outputMessage = '';
 
-    const relativeFilePath = vscode.workspace.asRelativePath(mutant.fileName);
+    const relativeFilePath = vscode.workspace.asRelativePath(mutant.fileName, false);
 
     const makeBold = (text: string) => `\x1b[1m${text}\x1b[0m`;
     const makeBlue = (text: string) => `\x1b[34m${text}\x1b[0m`;
@@ -144,7 +145,7 @@ export class TestRunHandler {
         globPatterns.push(globPattern);
       } else {
         // Item is a file or mutant
-        let globPattern = vscode.workspace.asRelativePath(uri);
+        let globPattern = vscode.workspace.asRelativePath(uri, false);
         if (testItem.range) {
           // Item is a mutant, add the range to the glob pattern
           globPattern += `:${testItem.range.start.line + 1}:${testItem.range.start.character}-${testItem.range.end.line + 1}:${testItem.range.end.character + 1}`;

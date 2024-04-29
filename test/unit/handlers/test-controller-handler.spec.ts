@@ -45,7 +45,7 @@ describe('testControllerHandler', () => {
 
   beforeEach(() => {
     controller = vscode.tests.createTestController('name', 'displayName');
-    handler = new TestControllerHandler(controller);
+    handler = new TestControllerHandler(controller, vscode.workspace.workspaceFolders![0]); // TODO: fix?
   });
 
   afterEach(() => {
