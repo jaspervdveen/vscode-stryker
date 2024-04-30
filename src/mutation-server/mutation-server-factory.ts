@@ -37,7 +37,7 @@ export class MutationServerFactory {
     }
 
     process.stdout.on('data', (data: string) => this.logger.logInfo(data));
-    process.stderr.on('error', (error) => this.logger.logError(error.toString()));
+    process.stderr.on('data', (error: string) => this.logger.logError(error.toString()));
     process.on('exit', (code: number | null) => this.logger.logInfo(`Server process exited with code ${code}`));
 
     return process;
