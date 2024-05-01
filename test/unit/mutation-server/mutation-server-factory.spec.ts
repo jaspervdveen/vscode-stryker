@@ -81,14 +81,16 @@ describe(MutationServerFactory.name, () => {
       const transporterStub = sinon.stub(WebSocketTransporter, 'create').resolves(sinon.createStubInstance(WebSocketTransporter));
       const workspaceFolder = '/path/to/folder';
 
+      const workspaceUri = vscode.Uri.parse(`file://${workspaceFolder}`);
+
       // Act
       await factory.create({
-        uri: vscode.Uri.parse(`file://${workspaceFolder}`),
+        uri: workspaceUri,
       } as vscode.WorkspaceFolder);
 
       // Assert
       expect(spawnStub.calledOnce).to.be.true;
-      expect(spawnStub.calledWith(sinon.match.string, sinon.match({ cwd: workspaceFolder }))).to.be.true;
+      expect(spawnStub.calledWith(sinon.match.string, sinon.match({ cwd: workspaceUri.fsPath }))).to.be.true;
       expect(transporterStub.calledOnce).to.be.true;
     });
 
