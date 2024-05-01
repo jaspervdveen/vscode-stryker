@@ -72,7 +72,7 @@ export class FileChangeHandler {
   }
 
   private async createFileWatchers() {
-    const pattern = new vscode.RelativePattern(this.workspaceFolder, '{src/**/*,!{**/*.git}'); // TODO: Get from workspace Stryker config
+    const pattern = new vscode.RelativePattern(this.workspaceFolder, '{src/**/*,!{**/*.git}'); // TODO: pattern from Stryker config (PBI 7276)
 
     const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 

@@ -45,7 +45,8 @@ describe('testControllerHandler', () => {
 
   beforeEach(() => {
     controller = vscode.tests.createTestController('name', 'displayName');
-    handler = new TestControllerHandler(controller, vscode.workspace.workspaceFolders![0]); // TODO: fix?
+    const [workspaceFolder] = vscode.workspace.workspaceFolders!; // There is always at least one workspace folder during tests
+    handler = new TestControllerHandler(controller, workspaceFolder);
   });
 
   afterEach(() => {
