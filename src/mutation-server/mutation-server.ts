@@ -35,7 +35,7 @@ export class MutationServer {
       response = JSON.parse(message);
     } catch (error) {
       this.logger.logError(`Failed to parse JSON: ${error}`);
-      return;
+      throw error;
     }
 
     if (response) {
@@ -68,7 +68,6 @@ export class MutationServer {
       {
         location: ProgressLocation.Window,
         title: config.messages.mutationTestingRunning,
-        cancellable: true,
       },
       async () => {
         this.progressNotification$
