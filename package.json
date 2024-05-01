@@ -27,14 +27,16 @@
           "stryker-mutator.mutationServerExecutablePath": {
             "type": "string",
             "default": "./node_modules/.bin/stryker-mutator/stryker-server",
-            "description": "The path to the mutation server executable."
+            "description": "The path to the mutation server executable.",
+            "scope": "resource"
           },
           "stryker-mutator.mutationServerPort": {
             "type": "number",
             "default": 0,
             "description": "The port of the mutation WebSocket server. 0 means a random port.",
             "minimum": 0,
-            "maximum": 65535
+            "maximum": 65535,
+            "scope": "resource"
           }
         }
       }
