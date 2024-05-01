@@ -77,7 +77,7 @@ describe(WebSocketTransporter.name, () => {
       const spy = sinon.spy(transporter);
       webSocketServer.clients.forEach((client) => client.send('Test Message'));
 
-      // wait a second
+      // Wait for websocket to handle message
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Assert that the message event is emitted
