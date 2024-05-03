@@ -24,7 +24,7 @@ By treating each root folder as an independent project entity, it is ensured tha
 ### Single Mutation Server
 
 * **Pros:**
-  - Prevents spawning multiple mutation servers for a single workspace.
+  - Prevents spawning multiple mutation servers for a single workspace. This will result in reduced consumption of the user's resources (e.g. memory usage).
 
 * **Cons:**
   - Each project may use different mutation testing frameworks or versions, necessitating different mutation servers.
@@ -35,7 +35,7 @@ By treating each root folder as an independent project entity, it is ensured tha
 ### Mutation Server per Root Folder
 
 * **Pros:**
-  - Each project operates independently, allowing for different mutation testing frameworks or versions.
+  - Each project operates independently, allowing for usage of different mutation testing frameworks or versions in a workspace.
   - Simplifies management as each root folder is treated as a separate project.
 
 * **Cons:**
