@@ -3,6 +3,7 @@ export interface Config {
     name: string;
     displayName: string;
     fileChangeDebounceTimeMs: number;
+    serverStartTimeoutMs: number;
   };
   messages: {
     instrumentationRunning: string;
@@ -16,6 +17,9 @@ export interface Config {
     mutationTestingFailed: string;
     mutationServerExecutablePathNotSet: string;
     mutationServerFailed: string;
+    mutationServerStartTimeoutReached: string;
+    mutationServerProcessSpawnFailed: string;
+    workspaceFolderSetupFailed: string;
   };
 }
 
@@ -24,6 +28,7 @@ export const config: Config = {
     name: 'stryker-mutator',
     displayName: 'Stryker Mutator',
     fileChangeDebounceTimeMs: 250,
+    serverStartTimeoutMs: 5000,
   },
   messages: {
     instrumentationRunning: 'Running instrumentation',
@@ -37,5 +42,8 @@ export const config: Config = {
     mutationTestingFailed: 'Error running mutation testing. Check the output for more information.',
     mutationServerExecutablePathNotSet: 'Mutation server executable path not set.',
     mutationServerFailed: 'Mutation server failed. Check the output for more information.',
+    mutationServerStartTimeoutReached: 'Timeout reached while waiting for port information from mutation server process.',
+    mutationServerProcessSpawnFailed: 'Failed to spawn mutation server process.',
+    workspaceFolderSetupFailed: 'Failed to setup workspace folder.',
   },
 };

@@ -4,11 +4,10 @@ import * as vscode from 'vscode';
 import { MutantResult } from '../api/mutant-result';
 
 export class TestControllerHandler {
-  private readonly testController: vscode.TestController;
-
-  constructor(testController: vscode.TestController) {
-    this.testController = testController;
-  }
+  constructor(
+    private readonly testController: vscode.TestController,
+    private readonly workspaceFolder: vscode.WorkspaceFolder,
+  ) {}
 
   public invalidateTestResults(): void {
     this.testController.invalidateTestResults();
@@ -63,7 +62,7 @@ export class TestControllerHandler {
 
       // If the child node doesn't exist, create a new test item for the directory
       if (!childNode) {
-        const uri = vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}${currentUri}`);
+        const uri = vscode.Uri.file(`${this.workspaceFolder.uri.fsPath}${currentUri}`);
         childNode = this.testController.createTestItem(directory, directory, uri);
 
         currentNode.add(childNode);
@@ -73,7 +72,7 @@ export class TestControllerHandler {
     });
 
     // Create and add a test item for the mutant with the given filePath
-    const testItem = this.createTestItem(mutant, vscode.Uri.file(`${vscode.workspace.workspaceFolders![0].uri.fsPath}/${filePath}`));
+    const testItem = this.createTestItem(mutant, vscode.Uri.file(`${this.workspaceFolder.uri.fsPath}/${filePath}`));
 
     currentNode.add(testItem);
 
@@ -90,7 +89,7 @@ export class TestControllerHandler {
     const groupedByFile = this.groupBy(result, 'fileName');
 
     for (const [filePath, mutants] of Object.entries(groupedByFile)) {
-      const cwd = vscode.workspace.workspaceFolders![0].uri.fsPath; // TODO: Temp hack fixed when backlog item #6642 is resolved
+      const cwd = this.workspaceFolder.uri.fsPath;
       const relativeFilePath = filePath.replace(cwd + '/', '');
 
       const testItem = this.findFileTestItemByPath(relativeFilePath);

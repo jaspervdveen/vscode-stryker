@@ -6,6 +6,7 @@
     "clear-text",
     "progress"
   ],
+  "checkers": ["typescript"],
   "testRunner": "command",
   "concurrency": 1, 
   "commandRunner": {
