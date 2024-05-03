@@ -43,8 +43,6 @@ const mutants: MutantResult[] = [
   },
 ];
 
-console.log(mutants);
-
 describe(MutationServer.name, () => {
   let transporterMock: TransporterMock;
   let loggerStub: sinon.SinonStubbedInstance<Logger>;
