@@ -1,25 +1,42 @@
 {
   "name": "stryker-mutator",
   "displayName": "Stryker Mutator",
-  "description": "Test your tests with mutation testing.",
+  "publisher": "stryker-mutator",
+  "description": "Test your tests with Stryker mutation testing.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.86.0"
   },
+  "license": "SEE LICENSE IN LICENSE.txt",
   "categories": [
-    "Other"
+    "Testing"
   ],
+  "keywords": [
+    "stryker",
+    "mutator",
+    "strykerjs",
+    "mutation",
+    "mutation testing",
+    "js",
+    "test",
+    "testing",
+    "stryker mutator",
+    "stryker-mutator"    
+  ],
+  "icon": "images/icon.png",
+  "qna": false,
   "activationEvents": [
-    "onStartupFinished"
+    "workspaceContains:**/*stryker.conf*.{json,js,mjs,cjs}"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jaspervdveen/vscode-stryker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jaspervdveen/vscode-stryker/issues"
+  },
   "main": "./out/src/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "stryker-mutator.instrument",
-        "title": "Stryker: Instrument workspace"
-      }
-    ],
     "configuration": [
       {
         "title": "Stryker Mutator",
@@ -49,7 +66,8 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "vscode-test",
-    "stryker": "xvfb-run -a stryker run"
+    "stryker": "xvfb-run -a stryker run",
+    "package": "vsce package"
   },
   "devDependencies": {
     "@stryker-mutator/mocha-runner": "^8.2.6",
@@ -65,6 +83,7 @@
     "@typescript-eslint/parser": "^6.21.0",
     "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.3.9",
+    "@vscode/vsce": "^2.26.1",
     "chai": "^4.4.1",
     "chai-as-promised": "^7.1.1",
     "eslint": "^8.57.0",

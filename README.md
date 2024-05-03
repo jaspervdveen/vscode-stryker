@@ -30,7 +30,9 @@ Take a look at our guide: [Install StrykerJS in your project](https://stryker-mu
 This extension contributes the following settings:
 
 * `stryker-mutator.mutationServerExecutablePath`: Set the path to the mutation server executable. 
+    * By default the extension will look for StrykerJS' package in your project's `node_modules` folder.
 * `stryker-mutator.mutationServerPort`: Set the port on which the mutation server will run.
+    * By default the extension will use a random available port on your system.
 
 ## Troubleshooting
 We’d love to get your help in making this extension better! If you have feedback or encounter any problems, please reach out on our GitHub repository.
