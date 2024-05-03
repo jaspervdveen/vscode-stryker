@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 import { config } from '../config.js';
 import { Logger } from '../utils/logger.js';
 import { MutationServer } from '../mutation-server/mutation-server.js';
-import { MutantResult } from '../api/mutant-result.js';
 import { MutationServerFactory } from '../mutation-server/mutation-server-factory.js';
 
 import { TestRunHandler } from './test-run-handler.js';
@@ -45,16 +44,13 @@ export class WorkspaceHandler {
   }
 
   private async runInitialInstrumentation(mutationServer: MutationServer, testControllerHandler: TestControllerHandler): Promise<void> {
-    let instrumentationResult: MutantResult[] = [];
-
     try {
-      instrumentationResult = await mutationServer.instrument({});
+      const instrumentationResult = await mutationServer.instrument({});
+      testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentationResult);
     } catch (error: any) {
       await vscode.window.showErrorMessage(config.errors.instrumentationFailed);
       const errorMessage: string = error.toString();
       this.logger.logError(errorMessage);
     }
-
-    testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentationResult);
   }
 }
