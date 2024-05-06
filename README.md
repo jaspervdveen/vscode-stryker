@@ -13,12 +13,12 @@ Take a look at our [introduction page](https://stryker-mutator.io/docs/).
 ### Test Explorer Integration
 Effortlessly navigate through mutants in your project via the Test Explorer view. Find mutants and run mutation tests per folder, per file or individually. Get visual feedback on the status of mutants within your code and easily navigate to mutants in your codebase directly from the Test Explorer.
 
-![test-explorer-feature](images/test-explorer.gif)
+![test-explorer](https://github.com/jaspervdveen/vscode-stryker/assets/48756416/ea589874-5030-4698-af93-f813cdb28b2d)
 
 ### Code annotations
 Easily test mutations right where they're written using the test icon in your code editor. You'll see the status of each tested mutation right next to your code. Plus, with the code diff view, you can quickly spot the changes Stryker made to your code.
 
-![code-editor-feature](images/code-editor.gif)
+![code-editor](https://github.com/jaspervdveen/vscode-stryker/assets/48756416/9c7df38f-67c7-4b17-b056-430a437dc5e0)
 
 ## Requirements
 
