@@ -11,3 +11,9 @@ webpack.config.js
 **/*.map
 **/*.ts
 **/.vscode-test.*
+docs/**
+.github/**
+test/**
+**.code-workspace
+webpack.config.js
+stryker.config.json
