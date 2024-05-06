@@ -9,12 +9,17 @@ export class Logger {
     this.outputChannel = vscode.window.createOutputChannel(config.app.displayName);
   }
 
-  public logError(message: string): void {
-    this.outputChannel.appendLine(`[ERROR] ${message}`);
+  public static getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    return String(error);
   }
 
-  public logInfo(message: string): void {
-    this.outputChannel.appendLine(`[INFO] ${message}`);
+  public logError(message: string, workspaceFolderName?: string): void {
+    this.outputChannel.appendLine(`[ERROR] ${workspaceFolderName ? `[${workspaceFolderName}] ` : ''}${message}`);
+  }
+
+  public logInfo(message: string, workspaceFolderName?: string): void {
+    this.outputChannel.appendLine(`[INFO] ${workspaceFolderName ? `[${workspaceFolderName}] ` : ''}${message}`);
   }
 
   public async errorNotification(message: string): Promise<void> {

@@ -19,8 +19,9 @@ export class WorkspaceHandler {
     vscode.workspace.workspaceFolders?.forEach(async (folder) => {
       try {
         await this.setupWorkspaceFolder(folder);
-      } catch {
-        logger.logError(config.errors.workspaceFolderSetupFailed);
+      } catch (error) {
+        logger.logError(Logger.getErrorMessage(error), folder.name);
+        logger.logError(config.errors.workspaceFolderSetupFailed, folder.name);
       }
     });
   }
@@ -47,10 +48,9 @@ export class WorkspaceHandler {
     try {
       const instrumentationResult = await mutationServer.instrument({});
       testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentationResult);
-    } catch (error: any) {
+    } catch (error) {
       await vscode.window.showErrorMessage(config.errors.instrumentationFailed);
-      const errorMessage: string = error.toString();
-      this.logger.logError(errorMessage);
+      this.logger.logError(Logger.getErrorMessage(error));
     }
   }
 }
