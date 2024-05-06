@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import { config } from '../config';
 import { Logger } from '../utils/logger';
 import { pathUtils } from '../utils/path-utils';
-import { MutationServer } from '../mutation-server/mutation-server.js';
+import { MutationServer } from '../mutation-server/mutation-server';
 
 import { TestControllerHandler } from './test-controller-handler';
 

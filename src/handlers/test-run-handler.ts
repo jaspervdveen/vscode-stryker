@@ -7,7 +7,7 @@ import { config } from '../config';
 import { pathUtils } from '../utils/path-utils';
 import { MutantResult } from '../api/mutant-result';
 import { MutateParams } from '../mutation-server/mutation-server-protocol';
-import { MutationServer } from '../mutation-server/mutation-server.js';
+import { MutationServer } from '../mutation-server/mutation-server';
 import { Logger } from '../utils/logger';
 
 import { TestControllerHandler } from './test-controller-handler';
