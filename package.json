@@ -1,25 +1,41 @@
 {
   "name": "stryker-mutator",
   "displayName": "Stryker Mutator",
-  "description": "Test your tests with mutation testing.",
+  "publisher": "stryker-mutator",
+  "description": "Test your tests with Stryker mutation testing.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.86.0"
   },
+  "license": "SEE LICENSE IN LICENSE.txt",
   "categories": [
-    "Other"
+    "Testing"
   ],
+  "keywords": [
+    "stryker",
+    "mutator",
+    "strykerjs",
+    "mutation",
+    "mutation testing",
+    "test",
+    "testing",
+    "stryker mutator",
+    "stryker-mutator"
+  ],
+  "icon": "images/icon.png",
+  "qna": false,
   "activationEvents": [
-    "onStartupFinished"
+    "workspaceContains:**/*stryker.conf*.{json,js,mjs,cjs}"
   ],
-  "main": "./out/src/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jaspervdveen/vscode-stryker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jaspervdveen/vscode-stryker/issues"
+  },
+  "main": "./dist/extension",
   "contributes": {
-    "commands": [
-      {
-        "command": "stryker-mutator.instrument",
-        "title": "Stryker: Instrument workspace"
-      }
-    ],
     "configuration": [
       {
         "title": "Stryker Mutator",
@@ -43,10 +59,13 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "start": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "vscode-test",
     "stryker": "xvfb-run -a stryker run"
@@ -65,6 +84,7 @@
     "@typescript-eslint/parser": "^6.21.0",
     "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.3.9",
+    "@vscode/vsce": "^2.26.1",
     "chai": "^4.4.1",
     "chai-as-promised": "^7.1.1",
     "eslint": "^8.57.0",
@@ -77,7 +97,10 @@
     "prettier": "^3.2.5",
     "sinon": "^17.0.1",
     "sinon-chai": "^3.7.0",
-    "typescript": "^5.3.3"
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
   },
   "dependencies": {
     "json-rpc-2.0": "^1.7.0",

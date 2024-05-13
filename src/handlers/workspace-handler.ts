@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 
-import { config } from '../config.js';
-import { Logger } from '../utils/logger.js';
-import { MutationServer } from '../mutation-server/mutation-server.js';
-import { MutationServerFactory } from '../mutation-server/mutation-server-factory.js';
+import { config } from '../config';
+import { Logger } from '../utils/logger';
+import { MutationServer } from '../mutation-server/mutation-server';
+import { MutationServerFactory } from '../mutation-server/mutation-server-factory';
 
-import { TestRunHandler } from './test-run-handler.js';
-import { FileChangeHandler } from './file-change-handler.js';
-import { TestControllerHandler } from './test-controller-handler.js';
+import { TestRunHandler } from './test-run-handler';
+import { FileChangeHandler } from './file-change-handler';
+import { TestControllerHandler } from './test-controller-handler';
 
 export class WorkspaceHandler {
   private readonly mutationServerFactory: MutationServerFactory;
@@ -19,8 +19,9 @@ export class WorkspaceHandler {
     vscode.workspace.workspaceFolders?.forEach(async (folder) => {
       try {
         await this.setupWorkspaceFolder(folder);
-      } catch {
-        logger.logError(config.errors.workspaceFolderSetupFailed);
+      } catch (error) {
+        logger.logError(Logger.getErrorMessage(error), folder.name);
+        logger.logError(config.errors.workspaceFolderSetupFailed, folder.name);
       }
     });
   }
@@ -47,10 +48,9 @@ export class WorkspaceHandler {
     try {
       const instrumentationResult = await mutationServer.instrument({});
       testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentationResult);
-    } catch (error: any) {
+    } catch (error) {
       await vscode.window.showErrorMessage(config.errors.instrumentationFailed);
-      const errorMessage: string = error.toString();
-      this.logger.logError(errorMessage);
+      this.logger.logError(Logger.getErrorMessage(error));
     }
   }
 }

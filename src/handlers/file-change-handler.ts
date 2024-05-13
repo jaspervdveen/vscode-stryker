@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import { config } from '../config';
 import { Logger } from '../utils/logger';
 import { pathUtils } from '../utils/path-utils';
-import { MutationServer } from '../mutation-server/mutation-server.js';
+import { MutationServer } from '../mutation-server/mutation-server';
 
 import { TestControllerHandler } from './test-controller-handler';
 
@@ -58,10 +58,9 @@ export class FileChangeHandler {
       const instrumentResult = await this.mutationServer.instrument({ globPatterns: filteredPaths });
 
       this.testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentResult);
-    } catch (error: any) {
+    } catch (error) {
       await vscode.window.showErrorMessage(config.errors.instrumentationFailed);
-      const errorMessage: string = error.toString();
-      this.logger.logError(errorMessage);
+      this.logger.logError(Logger.getErrorMessage(error));
     }
   }
 
