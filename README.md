@@ -1,12 +1,12 @@
 # Stryker Mutator
-This extension provides seamless integration with [StrykerJS](https://stryker-mutator.io/docs/stryker-js/introduction/), a mutation testing framework that supports most JavaScript projects, including TypeScript, React, Angular, VueJS, Svelte, and NodeJS.
+This extension provides seamless integration with mutation testing frameworks that support the Mutation Server Protocol. Currently, only [StrykerJS](https://stryker-mutator.io/docs/stryker-js/introduction/) supports this protocol. With StrykerJS, you can run mutation tests on most JavaScript projects, including TypeScript, React, Angular, VueJS, Svelte, and NodeJS.
 
 This extension allows you to easily run mutation tests directly within Visual Studio Code. With this extension, you can quickly identify weak spots in your codebase and improve the overall quality of your projects.
 
 ## What is mutation testing?
 Mutation testing introduces bugs, or mutants to your code, then your tests are run for each mutant. It is expected that your tests will now fail. If your tests fail then the mutant is killed. If your tests passed, the mutant survived. If you have survived mutants, it might indicate your tests do not sufficiently cover the code. The higher the percentage of mutants killed, the more effective your tests are.
 
-Take a look at our [introduction page](https://stryker-mutator.io/docs/).
+Take a look at StrykerJS' [introduction page](https://stryker-mutator.io/docs/) on mutation testing.
 
 ## Features
 
@@ -21,10 +21,7 @@ Easily test mutations right where they're written using the test icon in your co
 ![code-editor](https://github.com/jaspervdveen/vscode-stryker/assets/48756416/9c7df38f-67c7-4b17-b056-430a437dc5e0)
 
 ## Requirements
-
-To use this extension, ensure that you have StrykerJS installed in your project.
-
-Take a look at our guide: [Install StrykerJS in your project](https://stryker-mutator.io/docs/stryker-js/getting-started/)
+To use this extension, ensure that you have [StrykerJS installed in your project](https://stryker-mutator.io/docs/stryker-js/getting-started/), or setup a different mutation server via the extension settings.
 
 ## Extension Settings
 This extension contributes the following settings:
