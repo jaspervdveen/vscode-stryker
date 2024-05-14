@@ -1,6 +1,7 @@
-import { JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from 'json-rpc-2.0';
+import { JSONRPC, JSONRPCClient, JSONRPCRequest, JSONRPCResponse, TypedJSONRPCClient } from 'json-rpc-2.0';
 import { ProgressLocation, window } from 'vscode';
 import { Subject, filter, map } from 'rxjs';
+import * as vscode from 'vscode';
 
 import { config } from '../config';
 import { MutantResult } from '../api/mutant-result';
@@ -16,6 +17,8 @@ export class MutationServer {
     filter((request) => request.method === 'progress'),
     map((request) => request.params as ProgressParams<any>),
   );
+  private nextID = 1;
+  private readonly createID = () => this.nextID++;
 
   constructor(
     transporter: Transporter,
@@ -23,7 +26,7 @@ export class MutationServer {
   ) {
     this.rpcClient = new JSONRPCClient(async (jsonRpcRequest: JSONRPCRequest) => {
       transporter.send(JSON.stringify(jsonRpcRequest));
-    });
+    }, this.createID);
 
     transporter.on('message', (message: string) => this.handleMessage(message));
   }
@@ -63,7 +66,11 @@ export class MutationServer {
     );
   }
 
-  public async mutate(params: MutateParams, onPartialResult: (partialResult: MutatePartialResult) => void): Promise<void> {
+  public async mutate(
+    params: MutateParams,
+    onPartialResult: (partialResult: MutatePartialResult) => void,
+    token?: vscode.CancellationToken,
+  ): Promise<void> {
     return await window.withProgress(
       {
         location: ProgressLocation.Window,
@@ -77,7 +84,18 @@ export class MutationServer {
           )
           .subscribe(onPartialResult);
 
-        await this.rpcClient.request('mutate', params);
+        const requestId = this.createID();
+
+        token?.onCancellationRequested(() => {
+          this.rpcClient.notify('cancelRequest', { id: requestId });
+        });
+
+        await this.rpcClient.requestAdvanced({
+          jsonrpc: JSONRPC,
+          id: requestId,
+          method: 'mutate',
+          params: params,
+        });
       },
     );
   }
