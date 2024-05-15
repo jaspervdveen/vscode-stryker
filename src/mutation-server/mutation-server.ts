@@ -87,7 +87,7 @@ export class MutationServer {
         const requestId = this.createID();
 
         token?.onCancellationRequested(() => {
-          this.rpcClient.notify('cancelRequest', { id: requestId });
+          this.rpcClient.notify('$/cancelRequest', { id: requestId });
         });
 
         await this.rpcClient.requestAdvanced({
