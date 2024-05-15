@@ -1,4 +1,5 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import * as os from 'os';
 
 import * as vscode from 'vscode';
 
@@ -24,21 +25,21 @@ export class MutationServerFactory {
 
   private spawnMutationServerProcess(workspaceFolder: vscode.WorkspaceFolder): ChildProcessWithoutNullStreams {
     const workspaceFolderConfig = vscode.workspace.getConfiguration(config.app.name, workspaceFolder);
-    const mutationServerExecutablePath: string | undefined = workspaceFolderConfig.get('mutationServerExecutablePath');
+    const serverPathOverwrite: string | undefined = workspaceFolderConfig.get('mutationServerExecutablePathOverwrite');
 
-    if (!mutationServerExecutablePath) {
-      throw new Error(config.errors.mutationServerExecutablePathNotSet);
-    }
+    const defaultExecutablePath = os.type() === 'Windows_NT' ? config.app.defaultWindowsExecutablePath : config.app.defaultUnixExecutablePath;
 
-    const process = spawn(mutationServerExecutablePath, { cwd: workspaceFolder.uri.fsPath });
+    const command = serverPathOverwrite ?? defaultExecutablePath;
+
+    const process = spawn(command, { cwd: workspaceFolder.uri.fsPath });
+
+    process.stdout.on('data', (data: string) => this.logger.logInfo(`[Mutation Server Process] ${data}`, workspaceFolder.name));
+    process.stderr.on('data', (error: string) => this.logger.logError(`[Mutation Server Process] ${error.toString()}`, workspaceFolder.name));
+    process.on('exit', (code: number | null) => this.logger.logInfo(`[Mutation Server Process] Exited with code ${code}`, workspaceFolder.name));
 
     if (process.pid === undefined) {
       throw new Error(config.errors.mutationServerProcessSpawnFailed);
     }
-
-    process.stdout.on('data', (data: string) => this.logger.logInfo(data));
-    process.stderr.on('data', (error: string) => this.logger.logError(error.toString()));
-    process.on('exit', (code: number | null) => this.logger.logInfo(`Server process exited with code ${code}`));
 
     return process;
   }

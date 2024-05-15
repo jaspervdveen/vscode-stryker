@@ -4,6 +4,8 @@ export interface Config {
     displayName: string;
     fileChangeDebounceTimeMs: number;
     serverStartTimeoutMs: number;
+    defaultWindowsExecutablePath: string;
+    defaultUnixExecutablePath: string;
   };
   messages: {
     instrumentationRunning: string;
@@ -15,7 +17,6 @@ export interface Config {
     instrumentationFailed: string;
     reportReadingFailed: string;
     mutationTestingFailed: string;
-    mutationServerExecutablePathNotSet: string;
     mutationServerFailed: string;
     mutationServerStartTimeoutReached: string;
     mutationServerProcessSpawnFailed: string;
@@ -29,6 +30,8 @@ export const config: Config = {
     displayName: 'Stryker Mutator',
     fileChangeDebounceTimeMs: 250,
     serverStartTimeoutMs: 5000,
+    defaultWindowsExecutablePath: '.\\node_modules\\.bin\\stryker-server.cmd',
+    defaultUnixExecutablePath: './node_modules/.bin/stryker-server',
   },
   messages: {
     instrumentationRunning: 'Running instrumentation',
@@ -40,10 +43,9 @@ export const config: Config = {
     instrumentationFailed: 'Error running instrumentation. Check the output for more information.',
     reportReadingFailed: 'Error reading mutation report. Check the output for more information.',
     mutationTestingFailed: 'Error running mutation testing. Check the output for more information.',
-    mutationServerExecutablePathNotSet: 'Mutation server executable path not set.',
     mutationServerFailed: 'Mutation server failed. Check the output for more information.',
     mutationServerStartTimeoutReached: 'Timeout reached while waiting for port information from mutation server process.',
-    mutationServerProcessSpawnFailed: 'Failed to spawn mutation server process.',
-    workspaceFolderSetupFailed: 'Failed to setup workspace folder.',
+    mutationServerProcessSpawnFailed: 'Spawning mutation server process failed.',
+    workspaceFolderSetupFailed: 'Setting up workspace folder failed.',
   },
 };
