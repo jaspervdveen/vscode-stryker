@@ -41,6 +41,11 @@ export class TestRunHandler {
 
     const globPatterns = pathUtils.filterCoveredPatterns(this.getGlobPatterns(queue));
 
+    token.onCancellationRequested(() => {
+      run.appendOutput('Test run cancellation requested.');
+      run.end();
+    });
+
     try {
       const mutateParams: MutateParams = {
         globPatterns: globPatterns,
