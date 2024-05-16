@@ -43,7 +43,7 @@
           "stryker-mutator.mutationServerExecutablePathOverwrite": {
             "type": "string",
             "default": null,
-            "description": "Overwrite the filesystem path to the mutation server executable. By default the extension will look for StrykerJS' mutation server in your project's `node_modules\\.bin` folder.",
+            "description": "Overwrite the filesystem path to the mutation server executable. By default the extension will look for StrykerJS' mutation server in your project's `node_modules/.bin` folder.",
             "scope": "resource"
           },
           "stryker-mutator.mutationServerPort": {

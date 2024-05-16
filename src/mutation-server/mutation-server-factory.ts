@@ -27,9 +27,11 @@ export class MutationServerFactory {
     const workspaceFolderConfig = vscode.workspace.getConfiguration(config.app.name, workspaceFolder);
     const serverPathOverwrite: string | undefined = workspaceFolderConfig.get('mutationServerExecutablePathOverwrite');
 
-    const defaultExecutablePath = os.type() === 'Windows_NT' ? config.app.defaultWindowsExecutablePath : config.app.defaultUnixExecutablePath;
+    let command = os.type() === 'Windows_NT' ? config.app.defaultWindowsExecutablePath : config.app.defaultUnixExecutablePath;
 
-    const command = serverPathOverwrite ?? defaultExecutablePath;
+    if (serverPathOverwrite && serverPathOverwrite.length > 0) {
+      command = serverPathOverwrite;
+    }
 
     const process = spawn(command, { cwd: workspaceFolder.uri.fsPath });
 
