@@ -52,6 +52,13 @@
             "minimum": 0,
             "maximum": 65535,
             "scope": "resource"
+          },
+          "stryker-mutator.mutationServerTimeout": {
+            "type": "number",
+            "description": "The timeout in milliseconds for the mutation server to start.",
+            "minimum": 0,
+            "default": 60000,
+            "scope": "machine"
           }
         }
       }

@@ -2,6 +2,7 @@ import EventEmitter from 'node:events';
 import { ChildProcessWithoutNullStreams } from 'node:child_process';
 
 import WebSocket from 'ws';
+import * as vscode from 'vscode';
 
 import { config } from '../../config';
 
@@ -18,21 +19,24 @@ export class WebSocketTransporter extends EventEmitter implements Transporter {
   }
 
   public static async create(serverProcess: ChildProcessWithoutNullStreams): Promise<WebSocketTransporter> {
-    const port = await this.getWebSocketPort(serverProcess, config.app.serverStartTimeoutMs);
+    const timeoutMs: number | undefined = vscode.workspace.getConfiguration(config.app.name).get('mutationServerTimeout');
+    if (!timeoutMs) throw new Error('Timeout not set');
+
+    const port = await this.getWebSocketPort(serverProcess, timeoutMs);
     const transporter = new WebSocketTransporter(port);
-    await this.waitForConnectionEstablished(transporter);
+    await this.waitForConnectionEstablished(transporter, timeoutMs);
 
     return transporter;
   }
 
-  private static async waitForConnectionEstablished(transporter: Transporter): Promise<void> {
+  private static async waitForConnectionEstablished(transporter: Transporter, timeoutMs: number): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       setTimeout(() => {
         reject(new Error(config.errors.mutationServerStartTimeoutReached));
-      }, config.app.serverStartTimeoutMs);
+      }, timeoutMs);
 
-      transporter.on('connected', () => resolve());
-      transporter.on('error', (error) => reject(new Error(`Failed to establish connection: ${error}`)));
+      transporter.once('connected', () => resolve());
+      transporter.once('error', (error) => reject(new Error(`Failed to establish connection: ${error}`)));
     });
   }
 
