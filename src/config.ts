@@ -12,6 +12,7 @@ export interface Config {
     instrumentationStarted: string;
     instrumentationCompleted: string;
     mutationTestingRunning: string;
+    workspaceFolderSetupStarted: string;
   };
   errors: {
     instrumentationFailed: string;
@@ -38,6 +39,7 @@ export const config: Config = {
     instrumentationStarted: 'Instrumentation started',
     instrumentationCompleted: 'Instrumentation completed',
     mutationTestingRunning: 'Running mutation testing',
+    workspaceFolderSetupStarted: 'Setup workspace folder started',
   },
   errors: {
     instrumentationFailed: 'Error running instrumentation. Check the output for more information.',
