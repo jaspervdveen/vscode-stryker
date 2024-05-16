@@ -18,9 +18,7 @@ export class TestRunHandler {
     private readonly protocolHandler: MutationServer,
     private readonly testControllerHandler: TestControllerHandler,
   ) {
-    this.testController.createRunProfile('Test mutations', vscode.TestRunProfileKind.Run, (request, token) =>
-      this.mutationRunHandler(request, token),
-    );
+    this.testController.createRunProfile('Test mutations', vscode.TestRunProfileKind.Run, this.mutationRunHandler.bind(this));
   }
 
   public async mutationRunHandler(request: vscode.TestRunRequest, token: vscode.CancellationToken): Promise<void> {
