@@ -3,9 +3,21 @@
 This document describes the 0.0.1 version of the mutation server protocol.
 
 Table of contents:
-1. [Overview](#overview)
-2. [Base Protocol](#base-protocol)
-3. [Mutation Server Protocol](#mutation-server-protocol)
+- [Overview](#overview)
+- [Base Protocol](#base-protocol)
+    - [Abstract Message](#abstract-message)
+    - [Request Message](#request-message)
+    - [Response Message](#response-message)
+    - [Notification Message](#notification-message)
+    - [\$ Notifications and requests](#$-notifications-and-requests)
+    - [Cancellation Support](#cancellation-support)
+    - [Progress Support](#progress-support)
+        - [Partial Result Progress](#partial-result-progress)
+        - [Partial Result Params](#partialresultparams)
+- [Mutation Server Protocol](#mutation-server-protocol)
+    - [Features](#features)
+        - [Mutation test run](#mutation-test-run)
+        - [Instrument run](#instrument-run)
 
 ## Overview
 The idea behind a *Mutation Server* is to provide mutation-specific smarts inside a server that can communicate with development tooling (such as an IDE) over a protocol that enables inter-process communication.
@@ -94,14 +106,20 @@ interface ResponseError {
 ```
 
 ```typescript
-export namespace ErrorCodes {
-	// Defined by JSON-RPC
-	export const ParseError: number = -32700;
-	export const InvalidRequest: number = -32600;
-	export const MethodNotFound: number = -32601;
-	export const InvalidParams: number = -32602;
-	export const InternalError: number = -32603;
-}
+export const ErrorCodes = {
+  // Defined by JSON-RPC
+  ParseError: -32700,
+  InvalidRequest: -32600,
+  MethodNotFound: -32601,
+  InvalidParams: -32602,
+  InternalError: -32603,
+
+  /**
+   * The client has canceled a request and a server has detected
+   * the cancel.
+   */
+  RequestCancelled: -32000,
+};
 
 ```
 
@@ -122,6 +140,30 @@ interface NotificationMessage extends Message {
 	params?: array | object;
 }
 ```
+
+### \$ Notifications and requests
+Notification and requests whose methods start with '\$/ are messages which are protocol implementation dependent and might not be implementable in all clients or servers. For example if the server implementation uses a single threaded synchronous programming language then there is little a server can do to react to a [$/cancelRequest notification](#cancellation-support). If a server or client receives notifications starting with '\$/' it is free to ignore the notification. If a server or client receives a request starting with '\$/' it must error the request with a [MethodNotFound error](#response-message) if the request will not be handled.
+
+### Cancellation Support
+The base protocol offers support for request cancellation. To cancel a request, a notification message with the following properties is sent:
+
+*Notification:*
+
+* method '$/cancelRequest'
+* params: `CancelParams` defined as follows:
+
+```typescript
+export interface CancelParams {
+  /**
+   * The request id to cancel.
+   */
+  id: number | string;
+}
+```
+
+A request that got canceled still needs to return from the server and send a response back. It can not be left open / hanging. This is in line with the JSON-RPC protocol that requires that every request sends a response back.
+
+If the request returns an error response on cancellation the error code should be set to [ErrorCodes.RequestCancelled](#response-message).
 
 ### Progress Support
 The base protocol offers support to report progress in a generic fashion. This mechanism can be used to report partial result progress to support streaming of results.
@@ -203,7 +245,7 @@ interface MutateResult {
 }
 ```
 
-Please also note that a response return value of null indicates no result. It doesn’t tell the client to resend the request.
+Please also note that a response return value of null indicates no result. It doesn't tell the client to resend the request.
 
 ### Features
 
@@ -340,6 +382,6 @@ export interface InstrumentParams {
 ```
 Response:
 * result: [`MutantResult[]`](#mutantresult).
-* error: code and message set in case an exception happens during the ‘mutate’ request
+* error: code and message set in case an exception happens during the 'mutate' request
 
 
