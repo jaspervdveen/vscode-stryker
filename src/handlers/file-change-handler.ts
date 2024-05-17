@@ -89,9 +89,9 @@ export class FileChangeHandler {
     });
 
     // Called on file content change
-    watcher.onDidChange(this.changedUri$Subject.next.bind(this));
+    watcher.onDidChange((uri) => this.changedUri$Subject.next(uri));
 
     // Called on file/folder deletion and file/folder path changes
-    watcher.onDidDelete(this.deletedUri$Subject.next.bind(this.deletedUri$Subject));
+    watcher.onDidDelete((uri) => this.deletedUri$Subject.next(uri));
   }
 }
