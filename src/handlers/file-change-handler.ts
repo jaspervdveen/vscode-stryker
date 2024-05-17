@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+
 import { Subject, buffer, debounceTime } from 'rxjs';
 import * as vscode from 'vscode';
 
@@ -9,11 +11,11 @@ import { MutationServer } from '../mutation-server/mutation-server';
 import { TestControllerHandler } from './test-controller-handler';
 
 export class FileChangeHandler {
-  private readonly changedFilePath$Subject = new Subject<string>();
-  private readonly changedFilePath$ = this.changedFilePath$Subject.asObservable();
+  private readonly changedUri$Subject = new Subject<vscode.Uri>();
+  private readonly changedUri$ = this.changedUri$Subject.asObservable();
 
-  private readonly deletedFilePath$Subject = new Subject<string>();
-  private readonly deletedFilePath$ = this.deletedFilePath$Subject.asObservable();
+  private readonly deletedUri$Subject = new Subject<vscode.Uri>();
+  private readonly deletedUri$ = this.deletedUri$Subject.asObservable();
 
   private constructor(
     private readonly mutationServer: MutationServer,
@@ -23,13 +25,13 @@ export class FileChangeHandler {
   ) {
     // Changes are buffered to bundle multiple changes into one run
     // and debounced to prevent running while the user is still typing
-    this.changedFilePath$
-      .pipe(buffer(this.changedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))))
-      .subscribe((paths) => this.handleFileChange(paths));
+    this.changedUri$
+      .pipe(buffer(this.changedUri$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))))
+      .subscribe(this.handleUrisChanged.bind(this));
 
-    this.deletedFilePath$
-      .pipe(buffer(this.deletedFilePath$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))))
-      .subscribe((paths) => this.handlePathDeleted(paths));
+    this.deletedUri$
+      .pipe(buffer(this.deletedUri$.pipe(debounceTime(config.app.fileChangeDebounceTimeMs))))
+      .subscribe(this.handleUrisDeleted.bind(this));
   }
 
   public static async create(
@@ -43,19 +45,20 @@ export class FileChangeHandler {
     return handler;
   }
 
-  private async handleFileChange(paths: string[]) {
-    // Invalidate test results as changes might affect mutation results
+  private async handleUrisChanged(globPatternUris: vscode.Uri[]) {
+    // Invalidate test results as changes might affect earlier mutation results
     this.testControllerHandler.invalidateTestResults();
 
-    // Pass only unique paths to the mutation server, otherwise Stryker will not handle duplicates correctly
-    const uniquePaths = paths.filter((value, index, self) => self.indexOf(value) === index);
+    // Convert glob pattern uris to relative glob patterns paths
+    const relativeGlobPatterns = globPatternUris.map((uri) => vscode.workspace.asRelativePath(uri, false));
 
-    // Filter out paths that are covered by other paths, otherwise Stryker will not handle them correctly
-    const filteredPaths = pathUtils.filterCoveredPatterns(uniquePaths);
-
+    // Filter out patterns that are covered by other paths, otherwise Stryker will not handle them correctly
+    const filteredGlobPatterns = pathUtils.filterCoveredPatterns(relativeGlobPatterns);
     try {
       // Instrument files to detect changes
-      const instrumentResult = await this.mutationServer.instrument({ globPatterns: filteredPaths });
+      const instrumentResult = await this.mutationServer.instrument({
+        globPatterns: filteredGlobPatterns,
+      });
 
       this.testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentResult);
     } catch (error) {
@@ -64,10 +67,10 @@ export class FileChangeHandler {
     }
   }
 
-  private handlePathDeleted(paths: string[]) {
+  private handleUrisDeleted(uris: vscode.Uri[]) {
     this.testControllerHandler.invalidateTestResults();
 
-    this.testControllerHandler.deleteFromTestExplorer(paths);
+    this.testControllerHandler.deleteFromTestExplorer(uris);
   }
 
   private async createFileWatchers() {
@@ -78,22 +81,17 @@ export class FileChangeHandler {
     // Called on file/folder creation and file/folder path changes
     watcher.onDidCreate((uri) => {
       // If the uri is a folder, match everything in the folder
-      const uriIsFolder = !uri.fsPath.includes('.');
-      if (uriIsFolder) {
-        uri = vscode.Uri.parse(uri.fsPath + '/**/*');
+      if (fs.lstatSync(uri.fsPath).isDirectory()) {
+        this.changedUri$Subject.next(uri.with({ path: uri.path + '/**/*' }));
+      } else {
+        this.changedUri$Subject.next(uri);
       }
-
-      this.changedFilePath$Subject.next(uri.fsPath);
     });
 
     // Called on file content change
-    watcher.onDidChange((uri) => this.changedFilePath$Subject.next(uri.fsPath));
+    watcher.onDidChange(this.changedUri$Subject.next.bind(this));
 
     // Called on file/folder deletion and file/folder path changes
-    watcher.onDidDelete((uri) => {
-      const relativePath = uri.fsPath.replace(this.workspaceFolder.uri.fsPath + '/', '');
-
-      this.deletedFilePath$Subject.next(relativePath);
-    });
+    watcher.onDidDelete(this.deletedUri$Subject.next.bind(this.deletedUri$Subject));
   }
 }
