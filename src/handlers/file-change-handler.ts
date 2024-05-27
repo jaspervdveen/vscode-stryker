@@ -11,11 +11,11 @@ import { MutationServer } from '../mutation-server/mutation-server';
 import { TestControllerHandler } from './test-controller-handler';
 
 export class FileChangeHandler {
-  private readonly changedUri$Subject = new Subject<vscode.Uri>();
-  private readonly changedUri$ = this.changedUri$Subject.asObservable();
+  private readonly changedUriSubject = new Subject<vscode.Uri>();
+  private readonly changedUri$ = this.changedUriSubject.asObservable();
 
-  private readonly deletedUri$Subject = new Subject<vscode.Uri>();
-  private readonly deletedUri$ = this.deletedUri$Subject.asObservable();
+  private readonly deletedUriSubject = new Subject<vscode.Uri>();
+  private readonly deletedUri$ = this.deletedUriSubject.asObservable();
 
   private constructor(
     private readonly mutationServer: MutationServer,
@@ -82,16 +82,16 @@ export class FileChangeHandler {
     watcher.onDidCreate((uri) => {
       // If the uri is a folder, match everything in the folder
       if (fs.lstatSync(uri.fsPath).isDirectory()) {
-        this.changedUri$Subject.next(uri.with({ path: uri.path + '/**/*' }));
+        this.changedUriSubject.next(uri.with({ path: uri.path + '/**/*' }));
       } else {
-        this.changedUri$Subject.next(uri);
+        this.changedUriSubject.next(uri);
       }
     });
 
     // Called on file content change
-    watcher.onDidChange((uri) => this.changedUri$Subject.next(uri));
+    watcher.onDidChange((uri) => this.changedUriSubject.next(uri));
 
     // Called on file/folder deletion and file/folder path changes
-    watcher.onDidDelete((uri) => this.deletedUri$Subject.next(uri));
+    watcher.onDidDelete((uri) => this.deletedUriSubject.next(uri));
   }
 }

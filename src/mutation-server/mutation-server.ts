@@ -12,8 +12,8 @@ import { Transporter } from './transport/transporter';
 
 export class MutationServer {
   private readonly rpcClient: TypedJSONRPCClient<MutationServerMethods>;
-  private readonly notification$Subject = new Subject<JSONRPCRequest>();
-  private readonly progressNotification$ = this.notification$Subject.pipe(
+  private readonly notificationSubject = new Subject<JSONRPCRequest>();
+  private readonly progressNotification$ = this.notificationSubject.pipe(
     filter((request) => request.method === 'progress'),
     map((request) => request.params as ProgressParams<any>),
   );
@@ -45,7 +45,7 @@ export class MutationServer {
       const isNotification = !response.id;
 
       if (isNotification) {
-        this.notification$Subject.next(response as JSONRPCRequest);
+        this.notificationSubject.next(response as JSONRPCRequest);
       } else {
         this.rpcClient.receive(response as JSONRPCResponse);
       }
