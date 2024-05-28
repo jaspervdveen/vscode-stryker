@@ -13,8 +13,9 @@ export class TestControllerHandler {
     this.testController.invalidateTestResults();
   }
 
-  private deletePathFromTestExplorer(path: string): void {
-    const directories = path.split('/');
+  private deleteUriFromTestExplorer(uri: vscode.Uri): void {
+    const relativePath = vscode.workspace.asRelativePath(uri, false);
+    const directories = relativePath.split('/');
 
     let currentNodes = this.testController.items;
     let parent: vscode.TestItem | undefined;
@@ -48,8 +49,9 @@ export class TestControllerHandler {
     }
   }
 
-  public addMutantToTestExplorer(filePath: string, mutant: schema.MutantResult): vscode.TestItem {
-    const directories = filePath.split('/');
+  public addMutantToTestExplorer(fileUri: vscode.Uri, mutant: schema.MutantResult): vscode.TestItem {
+    const relativePath = vscode.workspace.asRelativePath(fileUri, false);
+    const directories = relativePath.split('/');
 
     let currentNode = this.testController.items;
 
@@ -62,7 +64,7 @@ export class TestControllerHandler {
 
       // If the child node doesn't exist, create a new test item for the directory
       if (!childNode) {
-        const uri = vscode.Uri.file(`${this.workspaceFolder.uri.fsPath}${currentUri}`);
+        const uri = vscode.Uri.file(`${this.workspaceFolder.uri.path}${currentUri}`);
         childNode = this.testController.createTestItem(directory, directory, uri);
 
         currentNode.add(childNode);
@@ -72,39 +74,39 @@ export class TestControllerHandler {
     });
 
     // Create and add a test item for the mutant with the given filePath
-    const testItem = this.createTestItem(mutant, vscode.Uri.file(`${this.workspaceFolder.uri.fsPath}/${filePath}`));
+    const testItem = this.createTestItem(mutant, fileUri);
 
     currentNode.add(testItem);
 
     return testItem;
   }
 
-  public deleteFromTestExplorer(paths: string[]): void {
-    for (const path of paths) {
-      this.deletePathFromTestExplorer(path);
+  public deleteFromTestExplorer(fileUris: vscode.Uri[]): void {
+    for (const path of fileUris) {
+      this.deleteUriFromTestExplorer(path);
     }
   }
 
   public updateTestExplorerFromInstrumentRun(result: MutantResult[]): void {
     const groupedByFile = this.groupBy(result, 'fileName');
 
-    for (const [filePath, mutants] of Object.entries(groupedByFile)) {
-      const cwd = this.workspaceFolder.uri.fsPath;
-      const relativeFilePath = filePath.replace(cwd + '/', '');
+    for (const [fileName, mutants] of Object.entries(groupedByFile)) {
+      const fileUri = vscode.Uri.file(fileName);
 
-      const testItem = this.findFileTestItemByPath(relativeFilePath);
+      const testItem = this.findFileTestItem(fileUri);
 
       // Remove mutants that are not present in the new instrument run result
       testItem?.children.replace([]);
 
       mutants.forEach((mutant) => {
-        this.addMutantToTestExplorer(relativeFilePath, mutant);
+        this.addMutantToTestExplorer(fileUri, mutant);
       });
     }
   }
 
-  private findFileTestItemByPath(path: string): vscode.TestItem | undefined {
-    const directories = path.split('/');
+  private findFileTestItem(fileUri: vscode.Uri): vscode.TestItem | undefined {
+    const relativeFilePath = vscode.workspace.asRelativePath(fileUri, false);
+    const directories = relativeFilePath.split('/');
     const fileName = directories[directories.length - 1];
 
     let currentCollection = this.testController.items;

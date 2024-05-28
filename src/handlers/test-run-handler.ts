@@ -66,9 +66,8 @@ export class TestRunHandler {
 
   private async handleResult(result: MutantResult[], run: vscode.TestRun) {
     for (const mutantResult of result) {
-      const relativeFilePath = vscode.workspace.asRelativePath(mutantResult.fileName, false);
-
-      const testItem = this.testControllerHandler.addMutantToTestExplorer(relativeFilePath, mutantResult);
+      const pathUri = vscode.Uri.file(mutantResult.fileName);
+      const testItem = this.testControllerHandler.addMutantToTestExplorer(pathUri, mutantResult);
 
       const location: vscode.Location = new vscode.Location(testItem.uri!, testItem.range!);
       run.appendOutput(this.createOutputMessage(mutantResult), location, testItem);

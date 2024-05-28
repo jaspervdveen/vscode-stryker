@@ -1,6 +1,7 @@
-import childProcess, { spawn } from 'child_process';
+import childProcess from 'child_process';
 import { EventEmitter } from 'events';
 import { PassThrough, Readable } from 'stream';
+import * as os from 'os';
 
 import sinon from 'sinon';
 import * as vscode from 'vscode';
@@ -36,22 +37,27 @@ describe(MutationServerFactory.name, () => {
   });
 
   describe(MutationServerFactory.prototype.create.name, async () => {
-    it('should fail if executable path is not set', async () => {
+    it('should use os default executable path if not overwritten by extension config', async () => {
       // Arrange
+      sinon.stub(WebSocketTransporter, 'create').resolves(sinon.createStubInstance(WebSocketTransporter));
+
       const fake = sinon.fake.returns({
         get: sinon.stub().returns(undefined), // Simulate executable path not being set
       } as any);
-
-      // Replace vscode.workspace.getConfiguration with the stub
       sinon.replace(vscode.workspace, 'getConfiguration', fake);
 
-      try {
-        // Act
-        await factory.create({} as vscode.WorkspaceFolder);
-        expect.fail('Expected an error to be thrown when executable path is not set');
-      } catch (error) {
-        expect((error as Error).message).to.equal(config.errors.mutationServerExecutablePathNotSet);
-      }
+      const workspaceFolder = {
+        uri: vscode.Uri.parse('file:///path/to/folder'),
+        name: 'Test Folder',
+      } as vscode.WorkspaceFolder;
+      const path = os.type() === 'Windows_NT' ? config.app.defaultWindowsExecutablePath : config.app.defaultUnixExecutablePath;
+
+      // Act
+      await factory.create(workspaceFolder);
+
+      // Assert
+      expect(spawnStub.calledOnce).to.be.true;
+      expect(spawnStub.calledWith(path, sinon.match({ cwd: workspaceFolder.uri.fsPath }))).to.be.true;
     });
 
     it('should fail if process spawn fails', async () => {
@@ -98,9 +104,12 @@ describe(MutationServerFactory.name, () => {
       // Arrange
       sinon.stub(WebSocketTransporter, 'create').resolves(sinon.createStubInstance(WebSocketTransporter));
 
-      await factory.create({
+      const workspaceFolder = {
         uri: vscode.Uri.parse('file:///path/to/folder'),
-      } as vscode.WorkspaceFolder);
+        name: 'Test Folder',
+      } as vscode.WorkspaceFolder;
+
+      await factory.create(workspaceFolder);
 
       // Act
       const outputMessage = 'Server is listening on port: 1234';
@@ -114,9 +123,9 @@ describe(MutationServerFactory.name, () => {
 
       // Assert
       expect(loggerStub.logInfo.calledTwice).to.be.true;
-      expect(loggerStub.logInfo.calledWith(outputMessage)).to.be.true;
-      expect(loggerStub.logInfo.calledWith(`Server process exited with code ${exitCode}`)).to.be.true;
-      expect(loggerStub.logError.calledOnceWith(errorMessage)).to.be.true;
+      expect(loggerStub.logInfo.calledWith(`[Mutation Server Process] ${outputMessage}`, workspaceFolder.name)).to.be.true;
+      expect(loggerStub.logInfo.calledWith(`[Mutation Server Process] Exited with code ${exitCode}`, workspaceFolder.name)).to.be.true;
+      expect(loggerStub.logError.calledOnceWith(`[Mutation Server Process] ${errorMessage}`, workspaceFolder.name)).to.be.true;
     });
   });
 });
