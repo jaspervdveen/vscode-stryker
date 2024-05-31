@@ -17,3 +17,4 @@ test/**
 **.code-workspace
 webpack.config.js
 stryker.config.json
+**/*.js.map

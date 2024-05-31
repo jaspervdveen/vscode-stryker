@@ -54,6 +54,10 @@ describe(MutationServer.name, () => {
     mutationServer = new MutationServer(transporterMock, loggerStub);
   });
 
+  afterEach(() => {
+    sinon.restore();
+  });
+
   it('should send instrument request and receive response', async () => {
     // Arrange
     const sendFake = () => {

@@ -40,19 +40,25 @@
       {
         "title": "Stryker Mutator",
         "properties": {
-          "stryker-mutator.mutationServerExecutablePath": {
+          "stryker-mutator.mutationServerExecutablePathOverwrite": {
             "type": "string",
-            "default": "./node_modules/.bin/stryker-mutator/stryker-server",
-            "description": "The path to the mutation server executable.",
+            "default": null,
+            "description": "Overwrite the filesystem path to the mutation server executable. By default the extension will look for StrykerJS' mutation server in your project's `node_modules/.bin` folder.",
             "scope": "resource"
           },
           "stryker-mutator.mutationServerPort": {
             "type": "number",
-            "default": 0,
             "description": "The port of the mutation WebSocket server. 0 means a random port.",
             "minimum": 0,
             "maximum": 65535,
             "scope": "resource"
+          },
+          "stryker-mutator.mutationServerTimeout": {
+            "type": "number",
+            "description": "The timeout in milliseconds for the mutation server to start.",
+            "minimum": 0,
+            "default": 60000,
+            "scope": "machine"
           }
         }
       }
@@ -66,7 +72,7 @@
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src test --ext ts",
     "test": "vscode-test",
     "stryker": "xvfb-run -a stryker run"
   },

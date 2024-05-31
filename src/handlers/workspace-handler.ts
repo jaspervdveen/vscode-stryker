@@ -18,6 +18,7 @@ export class WorkspaceHandler {
     // Setup each root folder in the workspace
     vscode.workspace.workspaceFolders?.forEach(async (folder) => {
       try {
+        logger.logInfo(config.messages.workspaceFolderSetupStarted, folder.name);
         await this.setupWorkspaceFolder(folder);
       } catch (error) {
         logger.logError(Logger.getErrorMessage(error), folder.name);
@@ -41,16 +42,20 @@ export class WorkspaceHandler {
     new TestRunHandler(testController, mutationServer, testControllerHandler);
 
     // Run initial instrumentation to fill the test explorer with tests
-    await this.runInitialInstrumentation(mutationServer, testControllerHandler);
+    await this.runInitialInstrumentation(mutationServer, testControllerHandler, workspaceFolder);
   }
 
-  private async runInitialInstrumentation(mutationServer: MutationServer, testControllerHandler: TestControllerHandler): Promise<void> {
+  private async runInitialInstrumentation(
+    mutationServer: MutationServer,
+    testControllerHandler: TestControllerHandler,
+    workspaceFolder: vscode.WorkspaceFolder,
+  ): Promise<void> {
     try {
       const instrumentationResult = await mutationServer.instrument({});
       testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentationResult);
     } catch (error) {
       await vscode.window.showErrorMessage(config.errors.instrumentationFailed);
-      this.logger.logError(Logger.getErrorMessage(error));
+      this.logger.logError(Logger.getErrorMessage(error), workspaceFolder.name);
     }
   }
 }

@@ -7,8 +7,6 @@ import WebSocket, { WebSocketServer } from 'ws';
 import { WebSocketTransporter } from '../../../../src/mutation-server/transport/web-socket-transporter';
 
 describe(WebSocketTransporter.name, () => {
-  beforeEach(() => {});
-
   afterEach(() => {
     sinon.restore(); // Restores the default sandbox
   });
