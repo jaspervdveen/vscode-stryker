@@ -62,7 +62,7 @@ export class FileChangeHandler {
 
       this.testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentResult);
     } catch (error) {
-      await vscode.window.showErrorMessage(config.errors.instrumentationFailed);
+      void this.logger.errorNotification(config.errors.instrumentationFailed);
       this.logger.logError(Logger.getErrorMessage(error), this.workspaceFolder.name);
     }
   }

@@ -7,7 +7,14 @@ import { config } from '../config';
 import { MutantResult } from '../api/mutant-result';
 import { Logger } from '../utils/logger';
 
-import { InstrumentParams, MutateParams, MutatePartialResult, MutationServerMethods, ProgressParams } from './mutation-server-protocol';
+import {
+  InitializeParams,
+  InstrumentParams,
+  MutateParams,
+  MutatePartialResult,
+  MutationServerMethods,
+  ProgressParams,
+} from './mutation-server-protocol';
 import { Transporter } from './transport/transporter';
 
 export class MutationServer {
@@ -50,6 +57,10 @@ export class MutationServer {
         this.rpcClient.receive(response as JSONRPCResponse);
       }
     }
+  }
+
+  public async initialize(params: InitializeParams): Promise<void> {
+    await this.rpcClient.request('initialize', params);
   }
 
   public async instrument(params: InstrumentParams): Promise<MutantResult[]> {

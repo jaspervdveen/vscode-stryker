@@ -1,5 +1,14 @@
 import { MutantResult } from '../api/mutant-result';
 
+export interface InitializeParams {
+  /**
+   * The URI of the mutation testing framework config file
+   */
+  configUri?: string;
+}
+
+export const InitializeResult = {};
+
 export type ProgressToken = number | string;
 
 export interface ProgressParams<T> {
@@ -47,6 +56,7 @@ type MethodsType = Record<string, (params?: any) => any>;
 export interface MutationServerMethods extends MethodsType {
   instrument(params: InstrumentParams): MutantResult[];
   mutate(params: MutateParams): MutantResult[];
+  initialize(params: InitializeParams): typeof InitializeResult;
 }
 
 export type MutationServerMethodParams<T extends keyof MutationServerMethods> = Parameters<MutationServerMethods[T]>;
