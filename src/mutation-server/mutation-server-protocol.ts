@@ -7,9 +7,9 @@ export interface InitializeParams {
   configUri?: string;
 }
 
-export const InitializeResult = {};
+const InitializeResult = {};
 
-export type ProgressToken = number | string;
+type ProgressToken = number | string;
 
 export interface ProgressParams<T> {
   /**
@@ -22,7 +22,7 @@ export interface ProgressParams<T> {
   value: T;
 }
 
-export interface PartialResultParams {
+interface PartialResultParams {
   /**
    * An optional token that a server can use to report partial results (e.g.
    * streaming) to the client.
@@ -58,5 +58,3 @@ export interface MutationServerMethods extends MethodsType {
   mutate(params: MutateParams): MutantResult[];
   initialize(params: InitializeParams): typeof InitializeResult;
 }
-
-export type MutationServerMethodParams<T extends keyof MutationServerMethods> = Parameters<MutationServerMethods[T]>;
