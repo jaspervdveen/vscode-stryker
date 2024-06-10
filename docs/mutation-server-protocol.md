@@ -14,6 +14,8 @@ Table of contents:
     - [Progress Support](#progress-support)
         - [Partial Result Progress](#partial-result-progress)
         - [Partial Result Params](#partialresultparams)
+- [Lifecycle Messages](#server-lifecycle)
+    - [Initialize Request](#initialize-request)
 - [Mutation Server Protocol](#mutation-server-protocol)
     - [Features](#features)
         - [Mutation test run](#mutation-test-run)
@@ -119,6 +121,12 @@ export const ErrorCodes = {
    * the cancel.
    */
   RequestCancelled: -32000,
+
+  /**
+	 * Error code indicating that a server received a notification or
+	 * request before the server has received the `initialize` request.
+	 */
+	ServerNotInitialized: -32001;
 };
 
 ```
@@ -223,6 +231,38 @@ export interface PartialResultParams {
 	partialResultToken?: ProgressToken;
 }
 ```
+
+## Server lifecycle
+The current protocol specification defines that the lifecycle of a server is managed by the client (e.g. a tool like VS Code). It is up to the client to decide when to start and when to shutdown a server.
+
+## Initialize Request
+The initialize request is sent as the first request from the client to the server. If the server receives a request or notification before the initialize request it should act as follows:
+
+- For a request the response should be an error message with code: -32001. 
+- Notifications should be dropped.
+
+Until the server has responded to the initialize request with an `InitializeResult`, the client must not send any additional requests or notifications to the server. In addition the server is not allowed to send any requests or notifications to the client until it has responded with an `InitializeResult`.
+
+The initialize request may only be sent once.
+
+Request:
+* method: 'initialize'
+* params: `InitializeParams` defined as follows:
+```typescript
+interface InitializeParams {
+  /**
+   * The URI of the mutation testing framework config file
+   */
+  configUri?: string;
+}
+```
+
+Response:
+* result: `InitializeResult` defined as follows:
+```typescript
+interface InitializeResult {}
+```
+
 
 ## Mutation Server Protocol
 The language server protocol defines a set of JSON-RPC request, response and notification messages which are exchanged using the above base protocol. This section starts describing the basic JSON structures used in the protocol. The document uses TypeScript interfaces to describe these. Based on the basic JSON structures, the actual requests with their responses and the notifications are described.

@@ -25,7 +25,7 @@
   "icon": "images/icon.png",
   "qna": false,
   "activationEvents": [
-    "workspaceContains:**/*stryker.conf*.{json,js,mjs,cjs}"
+    "onStartupFinished"
   ],
   "repository": {
     "type": "git",
@@ -59,6 +59,12 @@
             "minimum": 0,
             "default": 60000,
             "scope": "machine"
+          },
+          "stryker-mutator.configFilePathOverwrite": {
+            "description": "Set the path to your mutation testing framework's configuration file in case it's not automatically detected.",
+            "type": "string",
+            "default": null,
+            "scope": "resource"
           }
         }
       }

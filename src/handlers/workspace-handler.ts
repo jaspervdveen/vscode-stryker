@@ -54,7 +54,7 @@ export class WorkspaceHandler {
       const instrumentationResult = await mutationServer.instrument({});
       testControllerHandler.updateTestExplorerFromInstrumentRun(instrumentationResult);
     } catch (error) {
-      await vscode.window.showErrorMessage(config.errors.instrumentationFailed);
+      void this.logger.errorNotification(config.errors.instrumentationFailed);
       this.logger.logError(Logger.getErrorMessage(error), workspaceFolder.name);
     }
   }

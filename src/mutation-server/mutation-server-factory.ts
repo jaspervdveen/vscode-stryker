@@ -8,6 +8,7 @@ import { config } from '../config';
 
 import { MutationServer } from './mutation-server';
 import { WebSocketTransporter } from './transport/web-socket-transporter';
+import { InitializeParams } from './mutation-server-protocol';
 
 export class MutationServerFactory {
   constructor(private readonly logger: Logger) {}
@@ -20,7 +21,21 @@ export class MutationServerFactory {
     const transporter = await WebSocketTransporter.create(mutationServerProcess);
 
     // Create a handler for communication with the mutation server via the protocol
-    return new MutationServer(transporter, this.logger);
+    const server = new MutationServer(transporter, this.logger);
+
+    // Initialize the mutation server
+    const workspaceFolderConfig = vscode.workspace.getConfiguration(config.app.name, workspaceFolder);
+    const configUri: string | undefined = workspaceFolderConfig.get('configFilePathOverwrite');
+
+    const initializeParams: InitializeParams = {};
+
+    if (configUri && configUri.length > 0) {
+      initializeParams.configUri = configUri;
+    }
+
+    await server.initialize(initializeParams);
+
+    return server;
   }
 
   private spawnMutationServerProcess(workspaceFolder: vscode.WorkspaceFolder): ChildProcessWithoutNullStreams {

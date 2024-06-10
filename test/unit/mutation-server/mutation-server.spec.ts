@@ -7,7 +7,7 @@ import { createJSONRPCNotification, createJSONRPCSuccessResponse } from 'json-rp
 import { MutationServer } from '../../../src/mutation-server/mutation-server';
 import { Transporter } from '../../../src/mutation-server/transport/transporter';
 import { Logger } from '../../../src/utils/logger';
-import { InstrumentParams, MutateParams, MutatePartialResult } from '../../../src/mutation-server/mutation-server-protocol';
+import { InitializeParams, InstrumentParams, MutateParams, MutatePartialResult } from '../../../src/mutation-server/mutation-server-protocol';
 import { MutantResult } from '../../../src/api/mutant-result';
 
 class TransporterMock extends EventEmitter implements Transporter {
@@ -137,5 +137,22 @@ describe(MutationServer.name, () => {
 
     // Assert
     expect(receivedMutants.length).to.eq(3);
+  });
+
+  describe(MutationServer.prototype.initialize.name, () => {
+    it('should send initialize request', async () => {
+      const requestParams: InitializeParams = { configUri: 'configUri' };
+
+      const fake = sinon.fake(() => {
+        transporterMock.emit('message', JSON.stringify(createJSONRPCSuccessResponse(1, [])));
+      });
+      sinon.replace(transporterMock, 'send', fake);
+
+      // Act
+      await mutationServer.initialize(requestParams);
+
+      // Assert
+      expect(fake.calledOnce).to.be.true;
+    });
   });
 });

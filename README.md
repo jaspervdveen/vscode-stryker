@@ -30,6 +30,12 @@ This extension contributes the following settings:
     * By default the extension will look for StrykerJS' mutation server in your project's `node_modules\.bin` folder.
 * `stryker-mutator.mutationServerPort`: Set the port on which the mutation server will run.
     * By default the extension will use a random available port on your system.
+* `stryker-mutator.mutationServerTimeout`: Set the timeout in milliseconds for the mutation server to start.
+    * By default the timeout will be a minute.
+* `stryker-mutator.configFilePathOverwrite`: Set the path to your mutation testing framework's configuration file.
+    * By default the mutation testing framework will try to detect the location of your config file.
+
+After changing any settings, reload your VS Code window to apply the changes.
 
 ## Troubleshooting
 We’d love to get your help in making this extension better! If you have feedback or encounter any problems, please reach out on our GitHub repository.
