@@ -238,7 +238,7 @@ The current protocol specification defines that the lifecycle of a server is man
 ## Initialize Request
 The initialize request is sent as the first request from the client to the server. If the server receives a request or notification before the initialize request it should act as follows:
 
-- For a request the response should be an error with code: -32001. The message can be picked by the server.
+- For a request the response should be an error message with code: -32001. 
 - Notifications should be dropped.
 
 Until the server has responded to the initialize request with an `InitializeResult`, the client must not send any additional requests or notifications to the server. In addition the server is not allowed to send any requests or notifications to the client until it has responded with an `InitializeResult`.
