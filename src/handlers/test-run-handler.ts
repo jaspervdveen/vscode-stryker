@@ -6,7 +6,7 @@ import { v4 as uuid } from 'uuid';
 import { config } from '../config';
 import { pathUtils } from '../utils/path-utils';
 import { MutantResult } from '../api/mutant-result';
-import { MutateParams } from '../mutation-server/mutation-server-protocol';
+import { MutationTestParams } from '../mutation-server/mutation-server-protocol';
 import { MutationServer } from '../mutation-server/mutation-server';
 import { Logger } from '../utils/logger';
 
@@ -45,13 +45,13 @@ export class TestRunHandler {
     });
 
     try {
-      const mutateParams: MutateParams = {
+      const mutationTestParams: MutationTestParams = {
         globPatterns: globPatterns,
         partialResultToken: uuid(),
       };
 
-      await this.protocolHandler.mutate(
-        mutateParams,
+      await this.protocolHandler.mutationTest(
+        mutationTestParams,
         async (partialResult) => {
           await this.handleResult(partialResult.mutants, run);
         },

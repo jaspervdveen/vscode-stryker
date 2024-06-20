@@ -11,8 +11,8 @@ import {
   InitializeParams,
   InitializeResult,
   InstrumentParams,
-  MutateParams,
-  MutatePartialResult,
+  MutationTestParams,
+  MutationTestPartialResult,
   MutationServerMethods,
   ProgressParams,
   ServerCapabilities,
@@ -86,9 +86,9 @@ export class MutationServer {
     );
   }
 
-  public async mutate(
-    params: MutateParams,
-    onPartialResult: (partialResult: MutatePartialResult) => void,
+  public async mutationTest(
+    params: MutationTestParams,
+    onPartialResult: (partialResult: MutationTestPartialResult) => void,
     token?: vscode.CancellationToken,
   ): Promise<void> {
     if (!this.serverCapabilities?.mutationTestProvider?.partialResults) {
@@ -103,7 +103,7 @@ export class MutationServer {
       async () => {
         this.progressNotification$
           .pipe(
-            filter((progress: ProgressParams<MutatePartialResult>) => progress.token === params.partialResultToken),
+            filter((progress: ProgressParams<MutationTestPartialResult>) => progress.token === params.partialResultToken),
             map((progress) => progress.value),
           )
           .subscribe(onPartialResult);
@@ -117,7 +117,7 @@ export class MutationServer {
         await this.rpcClient.requestAdvanced({
           jsonrpc: JSONRPC,
           id: requestId,
-          method: 'mutate',
+          method: 'mutationTest',
           params: params,
         });
       },

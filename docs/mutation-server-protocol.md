@@ -210,7 +210,7 @@ interface ProgressParams<T> {
 Progress is reported against a token. The token is different than the request ID which allows to report progress out of band and also for notification.
 
 #### Partial Result Progress
-Partial results are also reported using the generic progress notification. The value payload of a partial result progress notification should be the same as the final result. For example the mutate request has `MutantResult[]` as the result type. Partial result is therefore also of type `MutantResult[]`. Whether a client accepts partial result notifications for a request is signaled by adding a partialResultToken to the request parameter. For example, a mutate request that supports partial result progress might look like this:
+Partial results are also reported using the generic progress notification. The value payload of a partial result progress notification should be the same as the final result. For example the mutation test request has `MutantResult[]` as the result type. Partial result is therefore also of type `MutantResult[]`. Whether a client accepts partial result notifications for a request is signaled by adding a partialResultToken to the request parameter. For example, a mutationTest request that supports partial result progress might look like this:
 
 ```json
 {
@@ -363,12 +363,12 @@ The protocol also uses versioning to manage changes. Both the client and the ser
 ## Mutation Server Protocol
 The language server protocol defines a set of JSON-RPC request, response and notification messages which are exchanged using the above base protocol. This section starts describing the basic JSON structures used in the protocol. The document uses TypeScript interfaces to describe these. Based on the basic JSON structures, the actual requests with their responses and the notifications are described.
 
-An example would be a request send from the client to the server to request a mutation test run for specific glob patterns. The request's method would be 'mutate' with a parameter like this:
+An example would be a request send from the client to the server to request a mutation test run for specific glob patterns. The request's method would be 'mutationTest' with a parameter like this:
 
 ```typescript
-interface MutateParams extends PartialResultParams {
+interface MutationTestParams extends PartialResultParams {
   /**
-   * The glob patterns to mutate.
+   * The glob patterns to mutation test.
    */
   globPatterns?: string[];
 }
@@ -376,7 +376,7 @@ interface MutateParams extends PartialResultParams {
 
 The result of the request would be an array of mutants which have been tested. So the result looks like this:
 ```typescript
-interface MutateResult {
+interface MutationTestResult {
 	value: MutantResult[];
 }
 ```
@@ -389,13 +389,13 @@ Please also note that a response return value of null indicates no result. It do
 The request is sent from the client to the server to start a mutation run for the given glob patterns.
 
 Request:
-* method: 'mutate'
-* params: `MutateParams` defined as follows:
+* method: 'mutationTest'
+* params: `MutationTestParams` defined as follows:
 
 ```typescript
-interface MutateParams extends PartialResultParams {
+interface MutationTestParams extends PartialResultParams {
   /**
-   * The glob patterns to mutate.
+   * The glob patterns to mutation test.
    */
   globPatterns?: string[];
 }
@@ -500,7 +500,7 @@ interface Position {
 ```
 
 * partial result: [`MutantResult[]`](#mutantresult)
-* error: code and message set in case an exception happens during the ‘mutate’ request
+* error: code and message set in case an exception happens during the ‘mutationTest’ request
 
 ### Instrument run
 The request is sent from the client to the server to request mutations for the given glob patterns.

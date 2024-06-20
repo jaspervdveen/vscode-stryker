@@ -11,8 +11,8 @@ import { Logger } from '../../../src/utils/logger';
 import {
   InitializeParams,
   InstrumentParams,
-  MutateParams,
-  MutatePartialResult,
+  MutationTestParams,
+  MutationTestPartialResult,
   ServerCapabilities,
 } from '../../../src/mutation-server/mutation-server-protocol';
 import { MutantResult } from '../../../src/api/mutant-result';
@@ -117,8 +117,8 @@ describe(MutationServer.name, () => {
     });
   });
 
-  describe(MutationServer.prototype.mutate.name, () => {
-    it('should send mutate request and receive partial result', async () => {
+  describe(MutationServer.prototype.mutationTest.name, () => {
+    it('should send mutation test request and receive partial result', async () => {
       // Arrange
       const sendFake = () => {
         transporterMock.emit(
@@ -149,14 +149,14 @@ describe(MutationServer.name, () => {
       sinon.replace(transporterMock, 'send', sinon.fake(sendFake));
 
       const receivedMutants: MutantResult[] = [];
-      const onPartialResult = (partialResult: MutatePartialResult) => {
+      const onPartialResult = (partialResult: MutationTestPartialResult) => {
         receivedMutants.push(...partialResult.mutants);
       };
 
-      const mutateParams: MutateParams = { globPatterns: ['file1', 'file2'], partialResultToken: 1 };
+      const mutationTestParams: MutationTestParams = { globPatterns: ['file1', 'file2'], partialResultToken: 1 };
 
       // Act
-      await mutationServer.mutate(mutateParams, onPartialResult);
+      await mutationServer.mutationTest(mutationTestParams, onPartialResult);
 
       // Assert
       expect(receivedMutants.length).to.eq(3);
@@ -167,7 +167,7 @@ describe(MutationServer.name, () => {
       const sut = new MutationServer(transporterMock, loggerStub, { mutationTestProvider: { partialResults: false } });
 
       // Act & Assert
-      await expect(sut.mutate({}, () => undefined)).to.be.rejectedWith('Mutation tests with partial results are not supported by the server');
+      await expect(sut.mutationTest({}, () => undefined)).to.be.rejectedWith('Mutation tests with partial results are not supported by the server');
     });
   });
 

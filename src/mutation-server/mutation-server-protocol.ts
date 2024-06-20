@@ -92,14 +92,14 @@ export interface InstrumentParams {
   globPatterns?: string[];
 }
 
-export interface MutateParams extends PartialResultParams {
+export interface MutationTestParams extends PartialResultParams {
   /**
-   * The glob patterns to mutate.
+   * The glob patterns to mutation test.
    */
   globPatterns?: string[];
 }
 
-export interface MutatePartialResult {
+export interface MutationTestPartialResult {
   /**
    * The mutant results.
    */
@@ -110,6 +110,6 @@ type MethodsType = Record<string, (params?: any) => any>;
 
 export interface MutationServerMethods extends MethodsType {
   instrument(params: InstrumentParams): MutantResult[];
-  mutate(params: MutateParams): MutantResult[];
+  mutationTest(params: MutationTestParams): MutantResult[];
   initialize(params: InitializeParams): InitializeResult;
 }
