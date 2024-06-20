@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 import { TestControllerHandler } from '../../../src/handlers/test-controller-handler';
-import { MutantResult } from '../../api/mutant-result';
+import { MutantResult } from '../../../src/api/mutant-result';
 
 describe('testControllerHandler', () => {
   let controller: vscode.TestController;

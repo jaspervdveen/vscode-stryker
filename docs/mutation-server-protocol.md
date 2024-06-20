@@ -1,6 +1,6 @@
-# Mutation Server Protocol Specification v0.0.1
+# Mutation Server Protocol Specification v0.0.1-alpha.1
 
-This document describes the 0.0.1 version of the mutation server protocol.
+This document describes the 0.0.1-alpha.1 version of the mutation server protocol.
 
 Table of contents:
 - [Overview](#overview)
@@ -16,6 +16,8 @@ Table of contents:
         - [Partial Result Params](#partialresultparams)
 - [Lifecycle Messages](#server-lifecycle)
     - [Initialize Request](#initialize-request)
+        - [Server Capabilities](#server-capabilities)
+        - [Version Handshake](#version-handshake)
 - [Mutation Server Protocol](#mutation-server-protocol)
     - [Features](#features)
         - [Mutation test run](#mutation-test-run)
@@ -123,10 +125,16 @@ export const ErrorCodes = {
   RequestCancelled: -32000,
 
   /**
-	 * Error code indicating that a server received a notification or
-	 * request before the server has received the `initialize` request.
-	 */
-	ServerNotInitialized: -32001;
+   * Error code indicating that a server received a notification or
+   * request before the server has received the `initialize` request.
+   */
+  ServerNotInitialized: -32001;
+
+  /**
+   * If the protocol version provided by the client can't be handled by
+   * the server.
+   */
+  UnknownProtocolVersion: -5000;
 };
 
 ```
@@ -202,7 +210,7 @@ interface ProgressParams<T> {
 Progress is reported against a token. The token is different than the request ID which allows to report progress out of band and also for notification.
 
 #### Partial Result Progress
-Partial results are also reported using the generic progress notification. The value payload of a partial result progress notification should be the same as the final result. For example the mutate request has MutantResult[] as the result type. Partial result is therefore also of type MutantResult[]. Whether a client accepts partial result notifications for a request is signaled by adding a partialResultToken to the request parameter. For example, a mutate request that supports partial result progress might look like this:
+Partial results are also reported using the generic progress notification. The value payload of a partial result progress notification should be the same as the final result. For example the mutate request has `MutantResult[]` as the result type. Partial result is therefore also of type `MutantResult[]`. Whether a client accepts partial result notifications for a request is signaled by adding a partialResultToken to the request parameter. For example, a mutate request that supports partial result progress might look like this:
 
 ```json
 {
@@ -218,6 +226,25 @@ Partial results are also reported using the generic progress notification. The v
 The `partialResultToken` is then used to report partial results for the find references request.
 
 If a server reports partial result via a corresponding `progress`, the whole result must be reported using `progress` notifications. Each `progress` notification appends items to the result. The final response has to be empty in terms of result values. This avoids confusion about how the final result should be interpreted, e.g. as another partial result or as a replacing result.
+
+The token received via the partialResultToken property in a request’s param literal is only valid as long as the request has not send a response back. Canceling partial results is done by simply canceling the corresponding request.
+
+To ensure that clients do not set up a handler for partial results when the server does not support reporting any progress, the server must indicate its support for partial results reporting in its [capabilities](#server-capabilities). For example, in case the server can send partial results during a mutation test run, a server would signal such a support by setting the `mutationTestProvider` property in the server capabilities as follows:
+
+```json
+{
+	"mutationTestProvider": {
+		"partialResults": true
+	}
+}
+```
+
+The corresponding type definition for the server capability looks like this:
+```typescript
+export interface PartialResultOptions {
+  partialResults?: boolean;
+}
+```
 
 #### PartialResultParams
 A parameter literal used to pass a partial result token.
@@ -251,6 +278,16 @@ Request:
 ```typescript
 interface InitializeParams {
   /**
+   * Information about the client.
+   */
+  clientInfo: {
+    /**
+     * The client's version as defined by the client.
+     */
+    version: string;
+  };
+
+  /**
    * The URI of the mutation testing framework config file
    */
   configUri?: string;
@@ -260,9 +297,68 @@ interface InitializeParams {
 Response:
 * result: `InitializeResult` defined as follows:
 ```typescript
-interface InitializeResult {}
+interface InitializeResult {
+  /**
+   * The server's information.
+   */
+  serverInfo: {
+    /**
+     * The server's version as defined by the server.
+     */
+    version: string;
+  };
+
+  /**
+   * The capabilities the mutation server provides.
+   */
+  capabilities?: ServerCapabilities;
+}
+```
+* error: Server can throw an [UnknownProtocolVersion](#response-message) error code if the protocol version provided by the client can't be handled by the server.
+
+### Server Capabilities
+
+Mutation servers may not support all features defined by the protocol. The protocol therefore provides ‘capabilities’ within the initialization handshake. A capability groups a set of features. A mutation server announces their supported features using capabilities. As an example, a server announces that it cannot handle the `instrument` request.
+
+```typescript
+/**
+ * The capabilities provided by the server.
+ */
+interface ServerCapabilities {
+  /**
+   * The server provides support for instrument runs.
+   */
+  instrumentationProvider?: InstrumentationOptions;
+  /**
+   * The server provides support for mutation test runs.
+   */
+  mutationTestProvider?: MutationTestOptions;
+}
 ```
 
+```typescript
+export interface PartialResultOptions {
+  /**
+   * The server supports returning partial results.
+   */
+  partialResults?: boolean;
+}
+
+/**
+ * The options for instrumentation provider.
+ */
+type InstrumentationOptions = PartialResultOptions;
+
+/**
+ * The options for mutation testing provider.
+ */
+type MutationTestOptions = PartialResultOptions;
+```
+
+For future compatibility a `ServerCapabilities` object literal can have more properties set than currently defined. Clients receiving a ServerCapabilities object literal with unknown properties should ignore these properties. A missing property should be interpreted as an absence of the capability.
+
+### Version handshake
+The protocol also uses versioning to manage changes. Both the client and the server negotiate the version they support within the initialization handshake. The version handshake uses [semantic versioning 2.0.0](https://semver.org/) to manage compatibility. For example, if both versions share the same major version (1.x.x), they are considered compatible. If the major versions differ, the server must adjust or notify the user of the incompatibility by responding with an `UnknownProtocolVersion` error to an initialization request.
 
 ## Mutation Server Protocol
 The language server protocol defines a set of JSON-RPC request, response and notification messages which are exchanged using the above base protocol. This section starts describing the basic JSON structures used in the protocol. The document uses TypeScript interfaces to describe these. Based on the basic JSON structures, the actual requests with their responses and the notifications are described.
@@ -422,6 +518,4 @@ export interface InstrumentParams {
 ```
 Response:
 * result: [`MutantResult[]`](#mutantresult).
-* error: code and message set in case an exception happens during the 'mutate' request
-
-
+* error: code and message set in case an exception happens during the 'instrument' request

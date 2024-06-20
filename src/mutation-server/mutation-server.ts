@@ -9,11 +9,13 @@ import { Logger } from '../utils/logger';
 
 import {
   InitializeParams,
+  InitializeResult,
   InstrumentParams,
   MutateParams,
   MutatePartialResult,
   MutationServerMethods,
   ProgressParams,
+  ServerCapabilities,
 } from './mutation-server-protocol';
 import { Transporter } from './transport/transporter';
 
@@ -30,6 +32,7 @@ export class MutationServer {
   constructor(
     transporter: Transporter,
     private readonly logger: Logger,
+    private serverCapabilities?: ServerCapabilities,
   ) {
     this.rpcClient = new JSONRPCClient(async (jsonRpcRequest: JSONRPCRequest) => {
       transporter.send(JSON.stringify(jsonRpcRequest));
@@ -60,10 +63,16 @@ export class MutationServer {
   }
 
   public async initialize(params: InitializeParams): Promise<void> {
-    await this.rpcClient.request('initialize', params);
+    const initializeResult: InitializeResult = await this.rpcClient.request('initialize', params);
+
+    this.serverCapabilities = initializeResult.capabilities;
   }
 
   public async instrument(params: InstrumentParams): Promise<MutantResult[]> {
+    if (!this.serverCapabilities?.instrumentationProvider) {
+      throw new Error('Instrumentation is not supported by the server');
+    }
+
     return await window.withProgress(
       {
         location: ProgressLocation.Window,
@@ -82,6 +91,10 @@ export class MutationServer {
     onPartialResult: (partialResult: MutatePartialResult) => void,
     token?: vscode.CancellationToken,
   ): Promise<void> {
+    if (!this.serverCapabilities?.mutationTestProvider?.partialResults) {
+      throw new Error('Mutation tests with partial results are not supported by the server');
+    }
+
     return await window.withProgress(
       {
         location: ProgressLocation.Window,

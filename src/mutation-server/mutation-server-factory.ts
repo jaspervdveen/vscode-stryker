@@ -27,11 +27,12 @@ export class MutationServerFactory {
     const workspaceFolderConfig = vscode.workspace.getConfiguration(config.app.name, workspaceFolder);
     const configUri: string | undefined = workspaceFolderConfig.get('configFilePathOverwrite');
 
-    const initializeParams: InitializeParams = {};
-
-    if (configUri && configUri.length > 0) {
-      initializeParams.configUri = configUri;
-    }
+    const initializeParams: InitializeParams = {
+      clientInfo: {
+        version: config.app.protocolVersion,
+      },
+      ...(configUri && configUri.length > 0 ? { configUri } : {}),
+    };
 
     await server.initialize(initializeParams);
 
