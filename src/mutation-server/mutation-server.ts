@@ -91,8 +91,27 @@ export class MutationServer {
     onPartialResult: (partialResult: MutationTestPartialResult) => void,
     token?: vscode.CancellationToken,
   ): Promise<void> {
-    if (!this.serverCapabilities?.mutationTestProvider?.partialResults) {
-      throw new Error('Mutation tests with partial results are not supported by the server');
+    if (!this.serverCapabilities?.mutationTestProvider) {
+      throw new Error('Mutation testing is not supported by the server');
+    }
+
+    const requestId = this.createID();
+
+    token?.onCancellationRequested(() => {
+      this.rpcClient.notify('$/cancelRequest', { id: requestId });
+    });
+
+    const partialResultSupport = this.serverCapabilities.mutationTestProvider.partialResults;
+
+    if (partialResultSupport) {
+      params.partialResultToken = requestId;
+
+      this.progressNotification$
+        .pipe(
+          filter((progress: ProgressParams<MutationTestPartialResult>) => progress.token === params.partialResultToken),
+          map((progress) => progress.value),
+        )
+        .subscribe(onPartialResult);
     }
 
     return await window.withProgress(
@@ -101,24 +120,15 @@ export class MutationServer {
         title: config.messages.mutationTestingRunning,
       },
       async () => {
-        this.progressNotification$
-          .pipe(
-            filter((progress: ProgressParams<MutationTestPartialResult>) => progress.token === params.partialResultToken),
-            map((progress) => progress.value),
-          )
-          .subscribe(onPartialResult);
-
-        const requestId = this.createID();
-
-        token?.onCancellationRequested(() => {
-          this.rpcClient.notify('$/cancelRequest', { id: requestId });
-        });
-
-        await this.rpcClient.requestAdvanced({
+        const response = await this.rpcClient.requestAdvanced({
           jsonrpc: JSONRPC,
           id: requestId,
           method: 'mutationTest',
           params: params,
+        });
+
+        onPartialResult({
+          mutants: response.result,
         });
       },
     );

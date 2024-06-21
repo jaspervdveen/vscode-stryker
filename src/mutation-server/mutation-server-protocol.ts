@@ -35,6 +35,8 @@ type MutationTestOptions = PartialResultOptions;
 
 /**
  * The capabilities provided by the server.
+ * For future compatibility this object can have more properties set than currently defined.
+ * Clients receiving this object with unknown properties should ignore these properties. A missing property should be interpreted as an absence of the capability.
  */
 export interface ServerCapabilities {
   /**

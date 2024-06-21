@@ -162,12 +162,12 @@ describe(MutationServer.name, () => {
       expect(receivedMutants.length).to.eq(3);
     });
 
-    it('should throw error if mutation testing with partial results is not supported by the server', async () => {
+    it('should throw error if mutation testing is not supported by the server', async () => {
       // Arrange
-      const sut = new MutationServer(transporterMock, loggerStub, { mutationTestProvider: { partialResults: false } });
+      const sut = new MutationServer(transporterMock, loggerStub, {});
 
       // Act & Assert
-      await expect(sut.mutationTest({}, () => undefined)).to.be.rejectedWith('Mutation tests with partial results are not supported by the server');
+      await expect(sut.mutationTest({}, () => undefined)).to.be.rejectedWith('Mutation testing is not supported by the server');
     });
   });
 
