@@ -21,6 +21,8 @@ This raises the question of what kind of communication channels (e.g. stdio, pip
 4. http: Uses HTTP for communication.
 5. web sockets: Uses WebSockets for communication. WebSocket is not HTTP, but it does use HTTP initially for its handshake process.
 
+<!-- Is it a correct assumption that Server Sent Events (SSE) was not considered? Why not? It would simplify the server implementation (SSE is much simpler). Bi-directional communication could be established via multiple HTTP requests. -->
+
 ## Decision Outcome
 Initially, web sockets will be used for communication. However, future plans include supporting communication via pipes, sockets, and HTTP to ensure flexibility and compatibility across various environments.
 

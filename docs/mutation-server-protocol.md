@@ -21,6 +21,8 @@ Table of contents:
         - [Mutation test run](#mutation-test-run)
         - [Instrument run](#instrument-run)
 
+Note: is TS Interface enough? Or would we want to align on JSON Schema?
+
 ## Overview
 The idea behind a *Mutation Server* is to provide mutation-specific smarts inside a server that can communicate with development tooling (such as an IDE) over a protocol that enables inter-process communication.
 
@@ -64,26 +66,69 @@ interface RequestMessage extends Message {
 }
 ```
 
+Note: we could make the `method` property a union of string literals. That way we could also type the response better. Example:
+
+```typescript
+type RequestMethod = 'mutate' | 'instrument';
+type ResponseBodyMap = {
+  'mutate': MutantResult[];
+  'instrument': MutantResult[];
+}
+
+interface SuccessResponseMessage<T extends RequestMethod> extends BaseResponseMessage {
+  /**
+   * The result of a successful request.
+   */
+  result: ResponseBodyMap[T];
+}
+```
+
+```ts
+interface RequestMessage extends Message {
+  /**
+   * The request id.
+   */
+  id: number | string;
+
+  /**
+   * The method to be invoked.
+   */
+  method: RequestMethod;
+
+  /**
+   * The method's params.
+   */
+  params?: array | object;
+}
+
+interface SuccessResponseMessage<T extends 
+```
+
 ### Response Message
 A Response Message sent as a result of a request.
 
 ```typescript
-interface ResponseMessage extends Message {
+interface BaseResponseMessage extends Message {
 	/**
 	 * The request id.
 	 */
 	id: number | string | null;
+}
 
-	/**
-	 * The result of a request. This member is REQUIRED on success.
-	 * This member MUST NOT exist if there was an error invoking the method.
-	 */
-	result?: string | number | boolean | array | object | null;
+type ResponseMessage = SuccessResponseMessage | ErrorResponseMessage;
 
-	/**
-	 * The error object in case a request fails.
-	 */
-	error?: ResponseError;
+interface SuccessResponseMessage extends BaseResponseMessage {
+  /**
+   * The result of a successful request.
+   */
+  result: string | number | boolean | array | object | null;
+}
+
+interface ErrorResponseMessage extends BaseResponseMessage {
+  /**
+   * The error object in case a request fails.
+   */
+  error: ResponseError;
 }
 ```
 
@@ -292,6 +337,8 @@ Please also note that a response return value of null indicates no result. It do
 #### Mutation test run
 The request is sent from the client to the server to start a mutation run for the given glob patterns.
 
+Note: I think the method 'mutate' is unclear. I think 'run' would be better, or 'runMutationTest'.
+
 Request:
 * method: 'mutate'
 * params: `MutateParams` defined as follows:
@@ -301,7 +348,7 @@ interface MutateParams extends PartialResultParams {
   /**
    * The glob patterns to mutate.
    */
-  globPatterns?: string[];
+  globPatterns?: string[]; // TODO: Document how to mutate a specific part of a file. In StrykerJS, we allow this using the 'foo/bar.js:3-4' syntax (line 3 and line 4).
 }
 ```
 
@@ -408,6 +455,8 @@ interface Position {
 
 ### Instrument run
 The request is sent from the client to the server to request mutations for the given glob patterns.
+
+Note: I think the 'instrument' name is confusing. The term 'instrumentation' is coined by me when I was implementing mutant schemata. I based it on the name that istanbul (a code coverage measurement tool) uses. It refers to the act of generating mutants and instrumenting the code. You actually only need the mutants here. Thus I think 'mutate' or 'generateMutants' is better.
 
 Request:
 * method: 'instrument'
