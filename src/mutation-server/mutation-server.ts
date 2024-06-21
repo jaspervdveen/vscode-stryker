@@ -9,11 +9,13 @@ import { Logger } from '../utils/logger';
 
 import {
   InitializeParams,
+  InitializeResult,
   InstrumentParams,
-  MutateParams,
-  MutatePartialResult,
+  MutationTestParams,
+  MutationTestPartialResult,
   MutationServerMethods,
   ProgressParams,
+  ServerCapabilities,
 } from './mutation-server-protocol';
 import { Transporter } from './transport/transporter';
 
@@ -30,6 +32,7 @@ export class MutationServer {
   constructor(
     transporter: Transporter,
     private readonly logger: Logger,
+    private serverCapabilities?: ServerCapabilities,
   ) {
     this.rpcClient = new JSONRPCClient(async (jsonRpcRequest: JSONRPCRequest) => {
       transporter.send(JSON.stringify(jsonRpcRequest));
@@ -60,10 +63,16 @@ export class MutationServer {
   }
 
   public async initialize(params: InitializeParams): Promise<void> {
-    await this.rpcClient.request('initialize', params);
+    const initializeResult: InitializeResult = await this.rpcClient.request('initialize', params);
+
+    this.serverCapabilities = initializeResult.capabilities;
   }
 
   public async instrument(params: InstrumentParams): Promise<MutantResult[]> {
+    if (!this.serverCapabilities?.instrumentationProvider) {
+      throw new Error('Instrumentation is not supported by the server');
+    }
+
     return await window.withProgress(
       {
         location: ProgressLocation.Window,
@@ -77,35 +86,49 @@ export class MutationServer {
     );
   }
 
-  public async mutate(
-    params: MutateParams,
-    onPartialResult: (partialResult: MutatePartialResult) => void,
+  public async mutationTest(
+    params: MutationTestParams,
+    onPartialResult: (partialResult: MutationTestPartialResult) => void,
     token?: vscode.CancellationToken,
   ): Promise<void> {
+    if (!this.serverCapabilities?.mutationTestProvider) {
+      throw new Error('Mutation testing is not supported by the server');
+    }
+
+    const requestId = this.createID();
+
+    token?.onCancellationRequested(() => {
+      this.rpcClient.notify('$/cancelRequest', { id: requestId });
+    });
+
+    const partialResultSupport = this.serverCapabilities.mutationTestProvider.partialResults;
+
+    if (partialResultSupport) {
+      params.partialResultToken = requestId;
+
+      this.progressNotification$
+        .pipe(
+          filter((progress: ProgressParams<MutationTestPartialResult>) => progress.token === params.partialResultToken),
+          map((progress) => progress.value),
+        )
+        .subscribe(onPartialResult);
+    }
+
     return await window.withProgress(
       {
         location: ProgressLocation.Window,
         title: config.messages.mutationTestingRunning,
       },
       async () => {
-        this.progressNotification$
-          .pipe(
-            filter((progress: ProgressParams<MutatePartialResult>) => progress.token === params.partialResultToken),
-            map((progress) => progress.value),
-          )
-          .subscribe(onPartialResult);
-
-        const requestId = this.createID();
-
-        token?.onCancellationRequested(() => {
-          this.rpcClient.notify('$/cancelRequest', { id: requestId });
-        });
-
-        await this.rpcClient.requestAdvanced({
+        const response = await this.rpcClient.requestAdvanced({
           jsonrpc: JSONRPC,
           id: requestId,
-          method: 'mutate',
+          method: 'mutationTest',
           params: params,
+        });
+
+        onPartialResult({
+          mutants: response.result,
         });
       },
     );

@@ -5,6 +5,7 @@ export interface Config {
     fileChangeDebounceTimeMs: number;
     defaultWindowsExecutablePath: string;
     defaultUnixExecutablePath: string;
+    protocolVersion: string;
   };
   messages: {
     instrumentationRunning: string;
@@ -26,6 +27,7 @@ export const config: Config = {
     fileChangeDebounceTimeMs: 250,
     defaultWindowsExecutablePath: '.\\node_modules\\.bin\\stryker-server.cmd',
     defaultUnixExecutablePath: './node_modules/.bin/stryker-server',
+    protocolVersion: '0.0.1-alpha.1',
   },
   messages: {
     instrumentationRunning: 'Running instrumentation',

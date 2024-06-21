@@ -5,13 +5,17 @@ import * as os from 'os';
 
 import sinon from 'sinon';
 import * as vscode from 'vscode';
-import { expect } from 'chai';
+import { expect, use } from 'chai';
+import sinonChai from 'sinon-chai';
 
 import { MutationServerFactory } from '../../../src/mutation-server/mutation-server-factory';
 import { Logger } from '../../../src/utils/logger';
 import { config } from '../../../src/config';
 import { WebSocketTransporter } from '../../../src/mutation-server/transport/web-socket-transporter';
 import { MutationServer } from '../../../src/mutation-server/mutation-server';
+import { InitializeParams } from '../../mutation-server/mutation-server-protocol';
+
+use(sinonChai);
 
 class ChildProcessMock extends EventEmitter {
   public stdout: Readable = new PassThrough();
@@ -27,6 +31,7 @@ describe(MutationServerFactory.name, () => {
   let initializeStub: sinon.SinonStub;
   let workspaceFolderMock: vscode.WorkspaceFolder;
   let transporterStub: sinon.SinonStub;
+  let initializeParamsMock: InitializeParams;
 
   beforeEach(() => {
     loggerStub = sinon.createStubInstance(Logger);
@@ -37,6 +42,7 @@ describe(MutationServerFactory.name, () => {
     initializeStub = sinon.stub(MutationServer.prototype, 'initialize').resolves();
     workspaceFolderMock = { name: 'Example', index: 0, uri: vscode.Uri.parse('file:///path/to/folder') };
     transporterStub = sinon.stub(WebSocketTransporter, 'create').resolves(sinon.createStubInstance(WebSocketTransporter));
+    initializeParamsMock = { clientInfo: { version: config.app.protocolVersion } };
   });
 
   afterEach(() => {
@@ -102,7 +108,7 @@ describe(MutationServerFactory.name, () => {
       await factory.create(workspaceFolderMock);
 
       // Assert
-      expect(initializeStub.calledOnceWithExactly({ configUri: 'path' })).to.be.true;
+      expect(initializeStub).to.have.been.calledOnceWithExactly({ ...initializeParamsMock, configUri: 'path' });
     });
 
     it('should initialize mutation server without config file path if not set in workspace config', async () => {
@@ -116,7 +122,7 @@ describe(MutationServerFactory.name, () => {
       await factory.create(workspaceFolderMock);
 
       // Assert
-      expect(initializeStub.calledOnceWithExactly({})).to.be.true;
+      expect(initializeStub).to.have.been.calledOnceWithExactly(initializeParamsMock);
     });
 
     it('should initialize mutation server without config file if config file path is empty', async () => {
@@ -130,7 +136,7 @@ describe(MutationServerFactory.name, () => {
       await factory.create(workspaceFolderMock);
 
       // Assert
-      expect(initializeStub.calledOnceWithExactly({})).to.be.true;
+      expect(initializeStub).to.have.been.calledOnceWithExactly(initializeParamsMock);
     });
 
     it('should log server process output', async () => {
