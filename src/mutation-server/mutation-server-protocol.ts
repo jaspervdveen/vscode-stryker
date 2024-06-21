@@ -47,6 +47,7 @@ export interface ServerCapabilities {
    * The server provides support for mutation test runs.
    */
   mutationTestProvider?: MutationTestOptions;
+  [key: string]: any;
 }
 
 export interface InitializeResult {
