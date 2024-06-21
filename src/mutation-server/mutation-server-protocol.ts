@@ -47,6 +47,10 @@ export interface ServerCapabilities {
    * The server provides support for mutation test runs.
    */
   mutationTestProvider?: MutationTestOptions;
+  /**
+   * The index signature allows for any number of additional properties,
+   * facilitating the addition of new capabilities in future versions.
+   */
   [key: string]: any;
 }
 
