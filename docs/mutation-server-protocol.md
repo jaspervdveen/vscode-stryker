@@ -337,6 +337,8 @@ Please also note that a response return value of null indicates no result. It do
 #### Mutation test run
 The request is sent from the client to the server to start a mutation run for the given glob patterns.
 
+Note: I think the method 'mutate' is unclear. I think 'run' would be better, or 'runMutationTest'.
+
 Request:
 * method: 'mutate'
 * params: `MutateParams` defined as follows:
@@ -346,7 +348,7 @@ interface MutateParams extends PartialResultParams {
   /**
    * The glob patterns to mutate.
    */
-  globPatterns?: string[];
+  globPatterns?: string[]; // TODO: Document how to mutate a specific part of a file. In StrykerJS, we allow this using the 'foo/bar.js:3-4' syntax (line 3 and line 4).
 }
 ```
 
@@ -453,6 +455,8 @@ interface Position {
 
 ### Instrument run
 The request is sent from the client to the server to request mutations for the given glob patterns.
+
+Note: I think the 'instrument' name is confusing. The term 'instrumentation' is coined by me when I was implementing mutant schemata. I based it on the name that istanbul (a code coverage measurement tool) uses. It refers to the act of generating mutants and instrumenting the code. You actually only need the mutants here. Thus I think 'mutate' or 'generateMutants' is better.
 
 Request:
 * method: 'instrument'
