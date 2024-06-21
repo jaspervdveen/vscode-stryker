@@ -26,13 +26,22 @@ Table of contents:
 ## Overview
 The idea behind a *Mutation Server* is to provide mutation-specific smarts inside a server that can communicate with development tooling (such as an IDE) over a protocol that enables inter-process communication.
 
-The idea behind the *Mutation Server Protocol* is to standardize the protocol for how tools and servers communicate, so a single *Mutation Server* can be re-used in multiple development tools, and tools can support mutation testing frameworks with minimal effort. A mutation server runs as a separate process and development tools communicate with the server using the mutation server protocol over JSON-RPC.
+The idea behind the *Mutation Server Protocol* is to standardize the protocol for how tools and servers communicate, so a single *Mutation Server* can be re-used in multiple development tools, and tools can support mutation testing frameworks with minimal effort. A mutation server runs as a separate process and development tools communicate with the server using the mutation server protocol over JSON-RPC via a WebSocket connection.
 
 The *Mutation Server Protocol* is inspired by the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/)
 
 ## Base Protocol
 
-The base protocol sends JSON-RPC 2.0 messages using HTTP transport protocol. 
+The base protocol exchanges JSON-RPC 2.0 messages between the client and the server in a bi-directional manner using a WebSocket connection for message transportation.
+
+The mutation server must:
+
+1. Provide the WebSocket server.
+2. Once the WebSocket server is ready for connections, output the server port as the first message to the standard output in the following regex format: `/Server is listening on port: (\d+)/.`
+
+The client must listen for this output message and, upon receiving it, connect to the WebSocket server using the specified port.
+
+*In the future, the protocol may support additional inter-process communication (IPC) methods, such as standard input/output (stdio), pipes, and sockets.*
 
 ### Abstract Message
 A general message as defined by JSON-RPC. The mutation server protocol always uses “2.0” as the jsonrpc version.
