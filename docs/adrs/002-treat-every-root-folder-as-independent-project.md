@@ -8,6 +8,8 @@
 
 When using Visual Studio Code with multi-root workspaces, users can work on multiple related projects simultaneously. However, this raises the question of how to handle this scenario within our extension regarding mutation servers.
 
+Note: I don't understand the exact problem. TypeScript has the same complexities. A workspace can contain 1 project, or multiple projects. They currently detect this based on the `tsconfig.xxx.json` files. Why can't we do the same? Or better yet, just let the user configure it?
+
 ## Considered Options
 
 * Single mutation server per workspace
