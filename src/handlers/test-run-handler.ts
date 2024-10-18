@@ -1,12 +1,11 @@
 import { statSync } from 'fs';
 
 import * as vscode from 'vscode';
-import { v4 as uuid } from 'uuid';
 
 import { config } from '../config';
 import { pathUtils } from '../utils/path-utils';
 import { MutantResult } from '../api/mutant-result';
-import { MutateParams } from '../mutation-server/mutation-server-protocol';
+import { MutationTestParams } from '../mutation-server/mutation-server-protocol';
 import { MutationServer } from '../mutation-server/mutation-server';
 import { Logger } from '../utils/logger';
 
@@ -39,27 +38,30 @@ export class TestRunHandler {
 
     const globPatterns = pathUtils.filterCoveredPatterns(this.getGlobPatterns(queue));
 
-    token.onCancellationRequested(() => {
+    const handleResultPromises: Array<Promise<void>> = [];
+
+    token.onCancellationRequested(async () => {
       run.appendOutput('Test run cancellation requested.');
+      await Promise.all(handleResultPromises);
       run.end();
     });
 
     try {
-      const mutateParams: MutateParams = {
+      const mutationTestParams: MutationTestParams = {
         globPatterns: globPatterns,
-        partialResultToken: uuid(),
       };
 
-      await this.protocolHandler.mutate(
-        mutateParams,
+      await this.protocolHandler.mutationTest(
+        mutationTestParams,
         async (partialResult) => {
-          await this.handleResult(partialResult.mutants, run);
+          handleResultPromises.push(this.handleResult(partialResult.mutants, run));
         },
         token,
       );
     } catch (error) {
       run.appendOutput(Logger.getErrorMessage(error));
     } finally {
+      await Promise.all(handleResultPromises);
       run.end();
     }
   }
